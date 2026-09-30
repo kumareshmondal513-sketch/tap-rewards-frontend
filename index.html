@@ -1,1565 +1,220 @@
-PROJECT: Telegram Tap-to-Earn Mini App + Bot + Admin Panel
-
-IMPORTANT:
-Build a complete, production-ready Telegram Bot + Telegram Mini App.
-This must NOT be a demo, mockup, or fake project.
-
-The project must be designed so I can develop and manage it from an Android phone.
-Generate the complete source-code project with proper folders and files.
-Do not put all code into one file.
-
-==================================================
-1. TECHNOLOGY STACK
-==================================================
-
-Backend:
-- Python 3.12
-- FastAPI
-- aiogram 3.x
-- PostgreSQL
-- SQLAlchemy 2.x
-- Alembic
-- Pydantic v2
-- JWT/session-based admin authentication
-- Telegram WebApp initData validation
-
-Frontend:
-- React
-- TypeScript
-- Vite
-- Responsive mobile-first UI
-- Telegram Mini App compatible
-
-Deployment:
-- Frontend must be deployable to Netlify
-- Backend must be deployable to a Python-compatible cloud server
-- PostgreSQL must use DATABASE_URL from environment variables
-- Docker and docker-compose files
-- .env.example
-- README with complete deployment instructions
-
-Security:
-- Never hard-code secrets
-- Never expose BOT_TOKEN in frontend
-- Never trust coin/reward values sent by the client
-- Server must be authoritative for balance, rewards, energy and withdrawals
-- Validate Telegram WebApp initData on the server
-- Add rate limiting where appropriate
-- Add anti-cheat protections
-- Add activity logging
-- Validate all user input
-- Protect admin routes
-
-==================================================
-2. TELEGRAM BOT
-==================================================
-
-Create a Telegram bot using aiogram 3.x.
-
-Commands:
-- /start
-- /help
-- /profile
-- /balance
-- /referral
-- /withdraw
-- /support
-
-When a user sends /start:
-- Register the Telegram user if they do not already exist
-- Store Telegram user ID
-- Store username
-- Store first name
-- Store last name when available
-- Process referral code if present
-- Send a welcome message
-- Show a "ðŸš€ Open Mini App" button
-
-The Mini App URL must come from an environment variable:
-MINI_APP_URL
-
-Do not hard-code the Mini App URL.
-
-==================================================
-3. TELEGRAM MINI APP
-==================================================
-
-Create a complete mobile-first Mini App.
-
-Main screens:
-
-1. Home
-2. Earn
-3. Tasks
-4. Referral
-5. Wallet
-6. Profile
-7. Settings
-8. Withdrawal
-9. Transaction History
-
-Bottom navigation:
-- Home
-- Earn
-- Tasks
-- Team
-- Wallet
-
-Use a modern tap-to-earn style UI.
-
-The interface should work well on Android phones.
-
-==================================================
-4. TAP-TO-EARN SYSTEM
-==================================================
-
-Home screen must show:
-
-- Current coin balance
-- Current level
-- XP
-- Energy
-- Maximum energy
-- Coins per tap
-- Progress to next level
-
-Tap button:
-- User taps the button
-- Server validates the tap request
-- Reward coins are calculated on the server
-- Energy decreases
-- Tap history/activity can be recorded
-- Client cannot directly modify balance
-
-Add configurable:
-- coins per tap
-- maximum energy
-- energy regeneration rate
-- XP per tap
-- level requirements
-
-Admin must be able to change these settings.
-
-==================================================
-5. ENERGY SYSTEM
-==================================================
-
-Energy decreases when tapping.
-
-Energy regenerates automatically according to server time.
-
-Support:
-- Maximum energy
-- Energy regeneration interval
-- Energy regeneration amount
-- Energy upgrade
-- Optional rewarded-ad energy refill
-
-All energy calculations must be server-authoritative.
-
-==================================================
-6. LEVEL + XP
-==================================================
-
-Create a configurable level system.
-
-Each level can have:
-- Required XP
-- Coins per tap
-- Maximum energy
-- Energy regeneration speed
-- Level-up reward
-
-Admin must be able to configure level settings.
-
-==================================================
-7. DAILY REWARD
-==================================================
-
-Create daily login rewards.
-
-Support:
-- Daily claim
-- Consecutive day tracking
-- Configurable rewards
-- Claim history
-- Prevent multiple claims within the same reward period
-
-Admin can configure daily rewards.
-
-==================================================
-8. REFERRAL / TEAM SYSTEM
-==================================================
-
-Every user gets a unique referral link/code.
-
-Example:
-https://t.me/YOUR_BOT?start=ref_USERID
-
-When a new user joins through a referral:
-- Link the users
-- Give configurable referral reward
-- Track total referrals
-- Track active referrals
-- Track team members
-
-Create referral/team page showing:
-- Referral link
-- Total referrals
-- Active referrals
-- Referral earnings
-- Team members
-
-Referral rules must be configurable from Admin Panel.
-
-==================================================
-9. TASK SYSTEM
-==================================================
-
-Create an admin-controlled task system.
-
-Task types:
-- YouTube
-- Facebook
-- TikTok
-- Instagram
-- Telegram
-- Website
-- Custom task
-
-Each task can contain:
-- Title
-- Description
-- URL
-- Reward
-- Task type
-- Active/inactive
-- Optional verification code
-- Start/end date
-- Completion limit
-
-User can open a task and complete it.
-
-Prevent the same user from claiming the same task reward more than once unless the admin explicitly allows repeatable tasks.
-
-==================================================
-10. VIDEO VERIFICATION
-==================================================
-
-Support video tasks.
-
-Admin can create:
-- Video URL
-- Verification keyword/code
-- Reward
-- Timer
-
-After watching:
-- User submits verification code
-- Server validates the code
-- If correct, reward the user
-- Record task completion
-
-Do not rely only on frontend validation.
-
-==================================================
-11. AD SYSTEM
-==================================================
-
-Create an admin-controlled advertisement system.
-
-Admin can add:
-- Ad URL
-- Title
-- Description
-- Reward
-- Countdown duration
-- Active/inactive
-
-User flow:
-1. User opens ad
-2. Countdown starts
-3. User returns to Mini App
-4. Server validates the ad session
-5. Reward is credited
-
-Support:
-- Normal reward
-- Optional 2X reward
-- Energy refill ad
-
-Do not blindly reward users just because they send a "completed" request from the browser.
-
-==================================================
-12. WALLET
-==================================================
-
-Wallet screen must show:
-- Available coins
-- Total earned
-- Total withdrawn
-- Pending withdrawal
-- Withdrawal history
-
-Create transaction history.
-
-Transaction types:
-- TAP
-- TASK
-- DAILY_REWARD
-- REFERRAL
-- AD_REWARD
-- LEVEL_REWARD
-- UPGRADE
-- WITHDRAWAL
-- ADMIN_ADJUSTMENT
-
-==================================================
-13. WITHDRAWAL SYSTEM
-==================================================
-
-Create withdrawal requests.
-
-Supported payment methods:
-- bKash
-- Nagad
-- Rocket
-- Other methods configurable by admin
-
-User must provide:
-- Payment method
-- Account number
-- Amount
-
-Admin can configure:
-- Minimum withdrawal
-- Maximum withdrawal
-- Withdrawal fee
-- Required user profile fields
-
-Withdrawal statuses:
-- PENDING
-- APPROVED
-- REJECTED
-- PAID
-
-Admin can approve/reject requests.
-
-Every withdrawal must be recorded in the transaction history.
-
-==================================================
-14. USER PROFILE
-==================================================
-
-Profile screen:
-- Telegram ID
-- Username
-- Name
-- Level
-- XP
-- Balance
-- Referral count
-- Join date
-- Last active time
-- Withdrawal/payment information
-
-Allow users to update permitted profile/payment fields.
-
-==================================================
-15. ADMIN PANEL
-==================================================
-
-Create a separate secure Admin Panel.
-
-Admin login:
-- Email/username
-- Password
-
-Do NOT store admin passwords in plain text.
-
-Dashboard must show:
-
-- Total users
-- New users today
-- New users this week
-- Active users
-- Active users in last 24 hours
-- Suspended users
-- Total coins in circulation
-- Coins earned today
-- Coins spent today
-- Total withdrawal requests
-- Pending withdrawals
-- Approved withdrawals
-- Rejected withdrawals
-- Total task completions
-- Total ad completions
-- Total referrals
-- Suspicious activity count
-
-Dashboard should include useful charts/statistics.
-
-==================================================
-16. ADMIN USER MANAGEMENT
-==================================================
-
-Admin can:
-- Search users
-- View user profile
-- View user balance
-- View transaction history
-- View referral information
-- View task history
-- View activity logs
-- Suspend user
-- Activate user
-- Adjust balance
-- Change user level if authorized
-- View withdrawal information
-
-Every sensitive admin action must be logged.
-
-==================================================
-17. ADMIN TASK MANAGEMENT
-==================================================
-
-Admin can:
-- Create task
-- Edit task
-- Delete/deactivate task
-- Set reward
-- Set task type
-- Set verification code
-- Set task limits
-- View task completions
-
-==================================================
-18. ADMIN AD MANAGEMENT
-==================================================
-
-Admin can:
-- Add ad
-- Edit ad
-- Delete/deactivate ad
-- Set reward
-- Set countdown
-- Enable/disable 2X reward
-- View ad completion statistics
-
-==================================================
-19. ADMIN REWARD SETTINGS
-==================================================
-
-Admin can configure:
-- Coins per tap
-- Energy
-- Energy regeneration
-- Daily rewards
-- Referral rewards
-- Task rewards
-- Ad rewards
-- Level rewards
-- Withdrawal minimum
-- Withdrawal fee
-
-Do not hard-code these values.
-
-==================================================
-20. ADMIN SETTINGS
-==================================================
-
-Create settings for:
-- App name
-- Bot name
-- Mini App URL
-- Support username
-- Maintenance mode
-- Referral settings
-- Withdrawal settings
-- Coin settings
-- Energy settings
-- Task settings
-- Ad settings
-
-==================================================
-21. ANTI-CHEAT
-==================================================
-
-Implement reasonable server-side anti-cheat protections.
-
-Detect/log:
-- Excessive tap requests
-- Impossible tap frequency
-- Duplicate reward claims
-- Replay requests
-- Invalid Telegram initData
-- Suspicious IP/request patterns where available
-- Abnormal task completion patterns
-
-Do not permanently ban automatically based only on one signal.
-
-Create suspicious activity logs for admin review.
-
-==================================================
-22. DATABASE
-==================================================
-
-Use PostgreSQL.
-
-Create SQLAlchemy models for at least:
-
-User
-UserProfile
-Referral
-Level
-DailyReward
-Task
-TaskCompletion
-Ad
-AdSession
-AdCompletion
-Transaction
-Withdrawal
-PaymentMethod
-AppSetting
-Admin
-AdminSession
-ActivityLog
-SuspiciousActivity
-Notification
-
-Use proper:
-- Primary keys
-- Foreign keys
-- Indexes
-- Unique constraints
-- Timestamps
-- Relationships
-
-Use Alembic migrations.
-
-==================================================
-23. API
-==================================================
-
-Create clean FastAPI API routes.
-
-Example groups:
-
-/api/auth
-/api/user
-/api/tap
-/api/energy
-/api/levels
-/api/daily-reward
-/api/referrals
-/api/tasks
-/api/ads
-/api/wallet
-/api/withdrawals
-/api/profile
-/api/settings
-
-Admin:
-
-/api/admin/auth
-/api/admin/dashboard
-/api/admin/users
-/api/admin/tasks
-/api/admin/ads
-/api/admin/rewards
-/api/admin/withdrawals
-/api/admin/settings
-/api/admin/logs
-
-Use Pydantic schemas.
-
-==================================================
-24. FRONTEND
-==================================================
-
-React + TypeScript + Vite.
-
-Create:
-- components
-- pages
-- hooks
-- services
-- API client
-- types
-- state management
-- Telegram WebApp integration
-
-The frontend must be responsive and mobile-first.
-
-Do not expose secret environment variables to the browser.
-
-Use:
-VITE_API_BASE_URL
-
-for the backend API URL.
-
-==================================================
-25. BACKEND ENVIRONMENT VARIABLES
-==================================================
-
-Create .env.example with:
-
-BOT_TOKEN=
-DATABASE_URL=
-ADMIN_USERNAME=
-ADMIN_PASSWORD=
-JWT_SECRET=
-MINI_APP_URL=
-CORS_ORIGINS=
-API_BASE_URL=
-
-Never place real secrets in source code.
-
-==================================================
-26. DOCKER
-==================================================
-
-Create:
-
-Dockerfile
-docker-compose.yml
-
-Docker Compose should support:
-- backend
-- PostgreSQL
-
-Provide production-oriented configuration.
-
-==================================================
-27. TESTS
-==================================================
-
-Create tests for important functionality:
-
-- Telegram initData validation
-- User registration
-- Referral
-- Tap reward
-- Energy
-- Daily reward
-- Task completion
-- Ad reward
-- Withdrawal
-- Admin authentication
-- Suspicious activity
-
-==================================================
-28. README
-==================================================
-
-Create a detailed README.md.
-
-Explain:
-
-1. Project structure
-2. Required software
-3. Environment variables
-4. Telegram BotFather setup
-5. How to create the bot
-6. How to configure Mini App URL
-7. PostgreSQL setup
-8. Local development
-9. Database migration
-10. How to run backend
-11. How to run frontend
-12. How to deploy frontend to Netlify
-13. How to deploy backend
-14. How to connect Telegram Mini App
-15. How to create first admin
-16. Security notes
-17. Production deployment
-
-Because I will initially use Android, also provide a separate section:
-
-"ANDROID DEVELOPMENT"
-
-Explain how to work with the project from an Android phone using browser-based tools or Termux where necessary.
-
-==================================================
-29. PROJECT STRUCTURE
-==================================================
-
-Generate a clean structure similar to:
-
-tap_rewards/
-â”‚
-â”œâ”€â”€ backend/
-â”‚   â”œâ”€â”€ app/
-â”‚   â”‚   â”œâ”€â”€ api/
-â”‚   â”‚   â”œâ”€â”€ core/
-â”‚   â”‚   â”œâ”€â”€ db/
-â”‚   â”‚   â”œâ”€â”€ models/
-â”‚   â”‚   â”œâ”€â”€ schemas/
-â”‚   â”‚   â”œâ”€â”€ services/
-â”‚   â”‚   â”œâ”€â”€ bot/
-â”‚   â”‚   â”œâ”€â”€ security/
-â”‚   â”‚   â””â”€â”€ main.py
-â”‚   â”œâ”€â”€ alembic/
-â”‚   â”œâ”€â”€ tests/
-â”‚   â”œâ”€â”€ requirements.txt
-â”‚   â””â”€â”€ Dockerfile
-â”‚
-â”œâ”€â”€ frontend/
-â”‚   â”œâ”€â”€ src/
-â”‚   â”‚   â”œâ”€â”€ components/
-â”‚   â”‚   â”œâ”€â”€ pages/
-â”‚   â”‚   â”œâ”€â”€ hooks/
-â”‚   â”‚   â”œâ”€â”€ services/
-â”‚   â”‚   â”œâ”€â”€ types/
-â”‚   â”‚   â””â”€â”€ App.tsx
-â”‚   â”œâ”€â”€ package.json
-â”‚   â”œâ”€â”€ vite.config.ts
-â”‚   â””â”€â”€ Dockerfile
-â”‚
-â”œâ”€â”€ docker-compose.yml
-â”œâ”€â”€ .env.example
-â”œâ”€â”€ .gitignore
-â””â”€â”€ README.md
-
-You may improve this structure if needed.
-
-==================================================
-30. SOURCE CODE REQUIREMENT
-==================================================
-
-Generate REAL working source code.
-
-Do not:
-- Use fake APIs
-- Use mock database logic
-- Use placeholder functions such as "implement later"
-- Skip important files
-- Put everything into one file
-- Hard-code secrets
-- Claim a feature exists if it is not implemented
-
-All imports must match the generated file structure.
-
-Make the project internally consistent.
-
-==================================================
-31. GOOGLE AI STUDIO OUTPUT REQUIREMENT
-==================================================
-
-I am generating this project using Google AI Studio from an Android phone.
-
-Therefore:
-
-- Generate files separately
-- Clearly show the complete folder/file tree
-- Make every source file downloadable/exportable
-- If the environment supports creating project files, create the actual files
-- Keep filenames correct
-- Do not truncate important code with "...".
-- Do not omit large files.
-- Do not replace implementation with explanations.
-
-If the entire project cannot be generated in one response, continue automatically in multiple parts and keep the same file structure and code consistent.
-
-==================================================
-32. FINAL REQUIREMENT
-==================================================
-
-Before finishing, verify that:
-
-- Backend imports are consistent
-- Frontend imports are consistent
-- API URLs match
-- Database models match migrations
-- Telegram authentication is implemented
-- Admin authentication is implemented
-- Rewards are server-authoritative
-- Withdrawal logic is implemented
-- Environment variables are documented
-- Docker configuration is consistent
-- README matches the actual project
-
-Build this as a serious Telegram Tap-to-Earn Mini App platform, not a simple demo.PROJECT: Telegram Tap-to-Earn Mini App + Bot + Admin Panel
-
-IMPORTANT:
-Build a complete, production-ready Telegram Bot + Telegram Mini App.
-This must NOT be a demo, mockup, or fake project.
-
-The project must be designed so I can develop and manage it from an Android phone.
-Generate the complete source-code project with proper folders and files.
-Do not put all code into one file.
-
-==================================================
-1. TECHNOLOGY STACK
-==================================================
-
-Backend:
-- Python 3.12
-- FastAPI
-- aiogram 3.x
-- PostgreSQL
-- SQLAlchemy 2.x
-- Alembic
-- Pydantic v2
-- JWT/session-based admin authentication
-- Telegram WebApp initData validation
-
-Frontend:
-- React
-- TypeScript
-- Vite
-- Responsive mobile-first UI
-- Telegram Mini App compatible
-
-Deployment:
-- Frontend must be deployable to Netlify
-- Backend must be deployable to a Python-compatible cloud server
-- PostgreSQL must use DATABASE_URL from environment variables
-- Docker and docker-compose files
-- .env.example
-- README with complete deployment instructions
-
-Security:
-- Never hard-code secrets
-- Never expose BOT_TOKEN in frontend
-- Never trust coin/reward values sent by the client
-- Server must be authoritative for balance, rewards, energy and withdrawals
-- Validate Telegram WebApp initData on the server
-- Add rate limiting where appropriate
-- Add anti-cheat protections
-- Add activity logging
-- Validate all user input
-- Protect admin routes
-
-==================================================
-2. TELEGRAM BOT
-==================================================
-
-Create a Telegram bot using aiogram 3.x.
-
-Commands:
-- /start
-- /help
-- /profile
-- /balance
-- /referral
-- /withdraw
-- /support
-
-When a user sends /start:
-- Register the Telegram user if they do not already exist
-- Store Telegram user ID
-- Store username
-- Store first name
-- Store last name when available
-- Process referral code if present
-- Send a welcome message
-- Show a "ðŸš€ Open Mini App" button
-
-The Mini App URL must come from an environment variable:
-MINI_APP_URL
-
-Do not hard-code the Mini App URL.
-
-==================================================
-3. TELEGRAM MINI APP
-==================================================
-
-Create a complete mobile-first Mini App.
-
-Main screens:
-
-1. Home
-2. Earn
-3. Tasks
-4. Referral
-5. Wallet
-6. Profile
-7. Settings
-8. Withdrawal
-9. Transaction History
-
-Bottom navigation:
-- Home
-- Earn
-- Tasks
-- Team
-- Wallet
-
-Use a modern tap-to-earn style UI.
-
-The interface should work well on Android phones.
-
-==================================================
-4. TAP-TO-EARN SYSTEM
-==================================================
-
-Home screen must show:
-
-- Current coin balance
-- Current level
-- XP
-- Energy
-- Maximum energy
-- Coins per tap
-- Progress to next level
-
-Tap button:
-- User taps the button
-- Server validates the tap request
-- Reward coins are calculated on the server
-- Energy decreases
-- Tap history/activity can be recorded
-- Client cannot directly modify balance
-
-Add configurable:
-- coins per tap
-- maximum energy
-- energy regeneration rate
-- XP per tap
-- level requirements
-
-Admin must be able to change these settings.
-
-==================================================
-5. ENERGY SYSTEM
-==================================================
-
-Energy decreases when tapping.
-
-Energy regenerates automatically according to server time.
-
-Support:
-- Maximum energy
-- Energy regeneration interval
-- Energy regeneration amount
-- Energy upgrade
-- Optional rewarded-ad energy refill
-
-All energy calculations must be server-authoritative.
-
-==================================================
-6. LEVEL + XP
-==================================================
-
-Create a configurable level system.
-
-Each level can have:
-- Required XP
-- Coins per tap
-- Maximum energy
-- Energy regeneration speed
-- Level-up reward
-
-Admin must be able to configure level settings.
-
-==================================================
-7. DAILY REWARD
-==================================================
-
-Create daily login rewards.
-
-Support:
-- Daily claim
-- Consecutive day tracking
-- Configurable rewards
-- Claim history
-- Prevent multiple claims within the same reward period
-
-Admin can configure daily rewards.
-
-==================================================
-8. REFERRAL / TEAM SYSTEM
-==================================================
-
-Every user gets a unique referral link/code.
-
-Example:
-https://t.me/YOUR_BOT?start=ref_USERID
-
-When a new user joins through a referral:
-- Link the users
-- Give configurable referral reward
-- Track total referrals
-- Track active referrals
-- Track team members
-
-Create referral/team page showing:
-- Referral link
-- Total referrals
-- Active referrals
-- Referral earnings
-- Team members
-
-Referral rules must be configurable from Admin Panel.
-
-==================================================
-9. TASK SYSTEM
-==================================================
-
-Create an admin-controlled task system.
-
-Task types:
-- YouTube
-- Facebook
-- TikTok
-- Instagram
-- Telegram
-- Website
-- Custom task
-
-Each task can contain:
-- Title
-- Description
-- URL
-- Reward
-- Task type
-- Active/inactive
-- Optional verification code
-- Start/end date
-- Completion limit
-
-User can open a task and complete it.
-
-Prevent the same user from claiming the same task reward more than once unless the admin explicitly allows repeatable tasks.
-
-==================================================
-10. VIDEO VERIFICATION
-==================================================
-
-Support video tasks.
-
-Admin can create:
-- Video URL
-- Verification keyword/code
-- Reward
-- Timer
-
-After watching:
-- User submits verification code
-- Server validates the code
-- If correct, reward the user
-- Record task completion
-
-Do not rely only on frontend validation.
-
-==================================================
-11. AD SYSTEM
-==================================================
-
-Create an admin-controlled advertisement system.
-
-Admin can add:
-- Ad URL
-- Title
-- Description
-- Reward
-- Countdown duration
-- Active/inactive
-
-User flow:
-1. User opens ad
-2. Countdown starts
-3. User returns to Mini App
-4. Server validates the ad session
-5. Reward is credited
-
-Support:
-- Normal reward
-- Optional 2X reward
-- Energy refill ad
-
-Do not blindly reward users just because they send a "completed" request from the browser.
-
-==================================================
-12. WALLET
-==================================================
-
-Wallet screen must show:
-- Available coins
-- Total earned
-- Total withdrawn
-- Pending withdrawal
-- Withdrawal history
-
-Create transaction history.
-
-Transaction types:
-- TAP
-- TASK
-- DAILY_REWARD
-- REFERRAL
-- AD_REWARD
-- LEVEL_REWARD
-- UPGRADE
-- WITHDRAWAL
-- ADMIN_ADJUSTMENT
-
-==================================================
-13. WITHDRAWAL SYSTEM
-==================================================
-
-Create withdrawal requests.
-
-Supported payment methods:
-- bKash
-- Nagad
-- Rocket
-- Other methods configurable by admin
-
-User must provide:
-- Payment method
-- Account number
-- Amount
-
-Admin can configure:
-- Minimum withdrawal
-- Maximum withdrawal
-- Withdrawal fee
-- Required user profile fields
-
-Withdrawal statuses:
-- PENDING
-- APPROVED
-- REJECTED
-- PAID
-
-Admin can approve/reject requests.
-
-Every withdrawal must be recorded in the transaction history.
-
-==================================================
-14. USER PROFILE
-==================================================
-
-Profile screen:
-- Telegram ID
-- Username
-- Name
-- Level
-- XP
-- Balance
-- Referral count
-- Join date
-- Last active time
-- Withdrawal/payment information
-
-Allow users to update permitted profile/payment fields.
-
-==================================================
-15. ADMIN PANEL
-==================================================
-
-Create a separate secure Admin Panel.
-
-Admin login:
-- Email/username
-- Password
-
-Do NOT store admin passwords in plain text.
-
-Dashboard must show:
-
-- Total users
-- New users today
-- New users this week
-- Active users
-- Active users in last 24 hours
-- Suspended users
-- Total coins in circulation
-- Coins earned today
-- Coins spent today
-- Total withdrawal requests
-- Pending withdrawals
-- Approved withdrawals
-- Rejected withdrawals
-- Total task completions
-- Total ad completions
-- Total referrals
-- Suspicious activity count
-
-Dashboard should include useful charts/statistics.
-
-==================================================
-16. ADMIN USER MANAGEMENT
-==================================================
-
-Admin can:
-- Search users
-- View user profile
-- View user balance
-- View transaction history
-- View referral information
-- View task history
-- View activity logs
-- Suspend user
-- Activate user
-- Adjust balance
-- Change user level if authorized
-- View withdrawal information
-
-Every sensitive admin action must be logged.
-
-==================================================
-17. ADMIN TASK MANAGEMENT
-==================================================
-
-Admin can:
-- Create task
-- Edit task
-- Delete/deactivate task
-- Set reward
-- Set task type
-- Set verification code
-- Set task limits
-- View task completions
-
-==================================================
-18. ADMIN AD MANAGEMENT
-==================================================
-
-Admin can:
-- Add ad
-- Edit ad
-- Delete/deactivate ad
-- Set reward
-- Set countdown
-- Enable/disable 2X reward
-- View ad completion statistics
-
-==================================================
-19. ADMIN REWARD SETTINGS
-==================================================
-
-Admin can configure:
-- Coins per tap
-- Energy
-- Energy regeneration
-- Daily rewards
-- Referral rewards
-- Task rewards
-- Ad rewards
-- Level rewards
-- Withdrawal minimum
-- Withdrawal fee
-
-Do not hard-code these values.
-
-==================================================
-20. ADMIN SETTINGS
-==================================================
-
-Create settings for:
-- App name
-- Bot name
-- Mini App URL
-- Support username
-- Maintenance mode
-- Referral settings
-- Withdrawal settings
-- Coin settings
-- Energy settings
-- Task settings
-- Ad settings
-
-==================================================
-21. ANTI-CHEAT
-==================================================
-
-Implement reasonable server-side anti-cheat protections.
-
-Detect/log:
-- Excessive tap requests
-- Impossible tap frequency
-- Duplicate reward claims
-- Replay requests
-- Invalid Telegram initData
-- Suspicious IP/request patterns where available
-- Abnormal task completion patterns
-
-Do not permanently ban automatically based only on one signal.
-
-Create suspicious activity logs for admin review.
-
-==================================================
-22. DATABASE
-==================================================
-
-Use PostgreSQL.
-
-Create SQLAlchemy models for at least:
-
-User
-UserProfile
-Referral
-Level
-DailyReward
-Task
-TaskCompletion
-Ad
-AdSession
-AdCompletion
-Transaction
-Withdrawal
-PaymentMethod
-AppSetting
-Admin
-AdminSession
-ActivityLog
-SuspiciousActivity
-Notification
-
-Use proper:
-- Primary keys
-- Foreign keys
-- Indexes
-- Unique constraints
-- Timestamps
-- Relationships
-
-Use Alembic migrations.
-
-==================================================
-23. API
-==================================================
-
-Create clean FastAPI API routes.
-
-Example groups:
-
-/api/auth
-/api/user
-/api/tap
-/api/energy
-/api/levels
-/api/daily-reward
-/api/referrals
-/api/tasks
-/api/ads
-/api/wallet
-/api/withdrawals
-/api/profile
-/api/settings
-
-Admin:
-
-/api/admin/auth
-/api/admin/dashboard
-/api/admin/users
-/api/admin/tasks
-/api/admin/ads
-/api/admin/rewards
-/api/admin/withdrawals
-/api/admin/settings
-/api/admin/logs
-
-Use Pydantic schemas.
-
-==================================================
-24. FRONTEND
-==================================================
-
-React + TypeScript + Vite.
-
-Create:
-- components
-- pages
-- hooks
-- services
-- API client
-- types
-- state management
-- Telegram WebApp integration
-
-The frontend must be responsive and mobile-first.
-
-Do not expose secret environment variables to the browser.
-
-Use:
-VITE_API_BASE_URL
-
-for the backend API URL.
-
-==================================================
-25. BACKEND ENVIRONMENT VARIABLES
-==================================================
-
-Create .env.example with:
-
-BOT_TOKEN=
-DATABASE_URL=
-ADMIN_USERNAME=
-ADMIN_PASSWORD=
-JWT_SECRET=
-MINI_APP_URL=
-CORS_ORIGINS=
-API_BASE_URL=
-
-Never place real secrets in source code.
-
-==================================================
-26. DOCKER
-==================================================
-
-Create:
-
-Dockerfile
-docker-compose.yml
-
-Docker Compose should support:
-- backend
-- PostgreSQL
-
-Provide production-oriented configuration.
-
-==================================================
-27. TESTS
-==================================================
-
-Create tests for important functionality:
-
-- Telegram initData validation
-- User registration
-- Referral
-- Tap reward
-- Energy
-- Daily reward
-- Task completion
-- Ad reward
-- Withdrawal
-- Admin authentication
-- Suspicious activity
-
-==================================================
-28. README
-==================================================
-
-Create a detailed README.md.
-
-Explain:
-
-1. Project structure
-2. Required software
-3. Environment variables
-4. Telegram BotFather setup
-5. How to create the bot
-6. How to configure Mini App URL
-7. PostgreSQL setup
-8. Local development
-9. Database migration
-10. How to run backend
-11. How to run frontend
-12. How to deploy frontend to Netlify
-13. How to deploy backend
-14. How to connect Telegram Mini App
-15. How to create first admin
-16. Security notes
-17. Production deployment
-
-Because I will initially use Android, also provide a separate section:
-
-"ANDROID DEVELOPMENT"
-
-Explain how to work with the project from an Android phone using browser-based tools or Termux where necessary.
-
-==================================================
-29. PROJECT STRUCTURE
-==================================================
-
-Generate a clean structure similar to:
-
-tap_rewards/
-â”‚
-â”œâ”€â”€ backend/
-â”‚   â”œâ”€â”€ app/
-â”‚   â”‚   â”œâ”€â”€ api/
-â”‚   â”‚   â”œâ”€â”€ core/
-â”‚   â”‚   â”œâ”€â”€ db/
-â”‚   â”‚   â”œâ”€â”€ models/
-â”‚   â”‚   â”œâ”€â”€ schemas/
-â”‚   â”‚   â”œâ”€â”€ services/
-â”‚   â”‚   â”œâ”€â”€ bot/
-â”‚   â”‚   â”œâ”€â”€ security/
-â”‚   â”‚   â””â”€â”€ main.py
-â”‚   â”œâ”€â”€ alembic/
-â”‚   â”œâ”€â”€ tests/
-â”‚   â”œâ”€â”€ requirements.txt
-â”‚   â””â”€â”€ Dockerfile
-â”‚
-â”œâ”€â”€ frontend/
-â”‚   â”œâ”€â”€ src/
-â”‚   â”‚   â”œâ”€â”€ components/
-â”‚   â”‚   â”œâ”€â”€ pages/
-â”‚   â”‚   â”œâ”€â”€ hooks/
-â”‚   â”‚   â”œâ”€â”€ services/
-â”‚   â”‚   â”œâ”€â”€ types/
-â”‚   â”‚   â””â”€â”€ App.tsx
-â”‚   â”œâ”€â”€ package.json
-â”‚   â”œâ”€â”€ vite.config.ts
-â”‚   â””â”€â”€ Dockerfile
-â”‚
-â”œâ”€â”€ docker-compose.yml
-â”œâ”€â”€ .env.example
-â”œâ”€â”€ .gitignore
-â””â”€â”€ README.md
-
-You may improve this structure if needed.
-
-==================================================
-30. SOURCE CODE REQUIREMENT
-==================================================
-
-Generate REAL working source code.
-
-Do not:
-- Use fake APIs
-- Use mock database logic
-- Use placeholder functions such as "implement later"
-- Skip important files
-- Put everything into one file
-- Hard-code secrets
-- Claim a feature exists if it is not implemented
-
-All imports must match the generated file structure.
-
-Make the project internally consistent.
-
-==================================================
-31. GOOGLE AI STUDIO OUTPUT REQUIREMENT
-==================================================
-
-I am generating this project using Google AI Studio from an Android phone.
-
-Therefore:
-
-- Generate files separately
-- Clearly show the complete folder/file tree
-- Make every source file downloadable/exportable
-- If the environment supports creating project files, create the actual files
-- Keep filenames correct
-- Do not truncate important code with "...".
-- Do not omit large files.
-- Do not replace implementation with explanations.
-
-If the entire project cannot be generated in one response, continue automatically in multiple parts and keep the same file structure and code consistent.
-
-==================================================
-32. FINAL REQUIREMENT
-==================================================
-
-Before finishing, verify that:
-
-- Backend imports are consistent
-- Frontend imports are consistent
-- API URLs match
-- Database models match migrations
-- Telegram authentication is implemented
-- Admin authentication is implemented
-- Rewards are server-authoritative
-- Withdrawal logic is implemented
-- Environment variables are documented
-- Docker configuration is consistent
-- README matches the actual project
-
-Build this as a serious Telegram Tap-to-Earn Mini App platform, not a simple demo.
+<!DOCTYPE html>
+<html lang="bn">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Telegram Tap-to-Earn Mini App</title>
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        body {
+            background-color: #18222d;
+            color: #ffffff;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            min-height: 100vh;
+            text-align: center;
+        }
+
+        .header {
+            padding: 20px;
+            background-color: #212d3b;
+            border-bottom: 1px solid #2b394a;
+        }
+
+        .balance-container {
+            margin-top: 10px;
+        }
+
+        .balance-title {
+            font-size: 14px;
+            color: #8e9ca8;
+        }
+
+        .balance-value {
+            font-size: 36px;
+            font-weight: bold;
+            color: #f39c12;
+            margin-top: 5px;
+        }
+
+        .tap-area {
+            flex-grow: 1;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .tap-button {
+            width: 200px;
+            height: 200px;
+            border-radius: 50%;
+            background: radial-gradient(circle, #f39c12 0%, #d35400 100%);
+            border: 8px solid #f1c40f;
+            box-shadow: 0 0 30px rgba(241, 196, 15, 0.4);
+            cursor: pointer;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 64px;
+            user-select: none;
+            transition: transform 0.1s ease;
+        }
+
+        .tap-button:active {
+            transform: scale(0.95);
+        }
+
+        .stats {
+            margin-top: 30px;
+            width: 100%;
+            max-width: 300px;
+        }
+
+        .energy-bar-bg {
+            width: 100%;
+            height: 12px;
+            background-color: #2b394a;
+            border-radius: 6px;
+            overflow: hidden;
+            margin-top: 8px;
+        }
+
+        .energy-bar-fill {
+            height: 100%;
+            width: 100%;
+            background-color: #2ecc71;
+            transition: width 0.2s ease;
+        }
+
+        .energy-text {
+            display: flex;
+            justify-content: space-between;
+            font-size: 14px;
+            color: #8e9ca8;
+        }
+
+        .navbar {
+            display: flex;
+            justify-content: space-around;
+            background-color: #212d3b;
+            padding: 12px 0;
+            border-top: 1px solid #2b394a;
+        }
+
+        .nav-item {
+            color: #8e9ca8;
+            text-decoration: none;
+            font-size: 12px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .nav-item.active {
+            color: #3498db;
+        }
+
+        .nav-icon {
+            font-size: 20px;
+            margin-bottom: 4px;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="header">
+        <h2>Tap to Earn</h2>
+        <div class="balance-container">
+            <div class="balance-title">মোট ব্যালেন্স</div>
+            <div class="balance-value" id="balance">0</div>
+        </div>
+    </div>
+
+    <div class="tap-area">
+        <div class="tap-button" id="tapBtn">🪙</div>
+        
+        <div class="stats">
+            <div class="energy-text">
+                <span>⚡ এনার্জি</span>
+                <span id="energyText">1000 / 1000</span>
+            </div>
+            <div class="energy-bar-bg">
+                <div class="energy-bar-fill" id="energyFill"></div>
+            </div>
+        </div>
+    </div>
+
+    <div class="navbar">
+        <a href="#" class="nav-item active">
+            <span class="nav-icon">🏠</span>
+            <span>Home</span>
+        </a>
+        <a href="#" class="nav-item">
+            <span class="nav-icon">⚡</span>
+            <span>Earn</span>
+        </a>
+        <a href="#" class="nav-item">
+            <span class="nav-icon">📋</span>
+            <span>Tasks</span>
+        </a>
+        <a href="#" class="nav-item">
+            <span class="nav-icon">👥</span>
+            <span>Team</span>
+        </a>
+        <a href="#" class="nav-item">
+            <span class="nav-icon">👛</span>
+            <span>Wallet</span>
+        </a>
+    </div>
+
+    <script>
+        let balance = 0;
+        let energy = 1000;
+        const maxEnergy = 1000;
+
+        const balanceEl = document.getElementById('balance');
+        const energyTextEl = document.getElementById('energyText');
+        const energyFillEl = document.getElementById('energyFill');
+        const tapBtn = document.getElementById('tapBtn');
+
+        // Telegram WebApp Initialization
+        if (window.Telegram && window.Telegram.WebApp) {
+            window.Telegram.WebApp.ready();
+            window.Telegram.WebApp.expand();
+        }
+
+        tapBtn.addEventListener('click', () => {
+            if (energy > 0) {
+                balance += 1;
+                energy -= 1;
+                updateUI();
+            }
+        });
+
+        function updateUI() {
+            balanceEl.textContent = balance;
+            energyTextEl.textContent = `${energy} / ${maxEnergy}`;
+            const energyPercent = (energy / maxEnergy) * 100;
+            energyFillEl.style.width = `${energyPercent}%`;
+        }
+
+        // Energy Regeneration
+        setInterval(() => {
+            if (energy < maxEnergy) {
+                energy = Math.min(maxEnergy, energy + 1);
+                updateUI();
+            }
+        }, 3000);
+    </script>
+</body>
+  </html>
