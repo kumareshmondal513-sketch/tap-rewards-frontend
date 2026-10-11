@@ -1,284 +1,270 @@
-import express from 'express';
-
+import express from "express";
 import {
+  getAdmin,
   isAdmin,
-  createAdmin,
-  updateAdmin,
-  suspendAdmin,
-  activateAdmin,
-  removeAdmin,
   getAllAdmins,
-  getAdminPermissions
-} from './adminService.js';
+  addAdmin,
+  setAdminStatus,
+  removeAdmin
+} from "./adminService.js";
 
 const router = express.Router();
 
-
-// ===============================
-// ADMIN ACCESS CHECK
-// ===============================
-async function requireAdmin(
-  req,
-  res,
-  next
-) {
+// Check whether an admin is active
+router.get("/:adminId/check", async (req, res) => {
   try {
-    const telegramId =
-      req.headers['x-telegram-id'] ||
-      req.body?.telegramId ||
-      req.query?.telegramId;
+    const { adminId } = req.params;
 
-    if (!telegramId) {
-      return res.status(401).json({
+    if (!/^\d+$/.test(adminId)) {
+      return res.status(400).json({
         success: false,
-        message: 'Telegram ID is required.'
+        message: "Invalid admin ID"
       });
     }
 
-    const access = await isAdmin(
-      String(telegramId)
-    );
+    const active = await isAdmin(adminId);
 
-    if (!access) {
-      return res.status(403).json({
-        success: false,
-        message: 'Admin access denied.'
-      });
-    }
-
-    req.adminTelegramId =
-      String(telegramId);
-
-    next();
+    return res.json({
+      success: true,
+      adminId,
+      isAdmin: active
+    });
   } catch (error) {
-    console.error(
-      'Admin access error:',
-      error.message
-    );
+    console.error("Admin check error:", error.message);
 
-    res.status(500).json({
+    return res.status(500).json({
       success: false,
-      message: 'Admin authorization failed.'
+      message: "Failed to check admin"
     });
   }
-}
+});
 
+// List admins
+router.get("/", async (req, res) => {
+  try {
+    const admins = await getAllAdmins();
 
-// ===============================
-// CHECK ADMIN
-// ===============================
-router.get(
-  '/check',
-  requireAdmin,
-  async (req, res) => {
-    try {
-      const permissions =
-        await getAdminPermissions(
-          req.adminTelegramId
-        );
+    return res.json({
+      success: true,
+      count: admins.length,
+      data: admins
+    });
+  } catch (error) {
+    console.error("Get admins error:", error.message);
 
-      res.json({
-        success: true,
-        admin: true,
-        permissions
-      });
-    } catch (error) {
-      res.status(400).json({
+    return res.status(500).json({
+      success: false,
+      message: "Failed to get admins"
+    });
+  }
+});
+
+// Get one admin
+router.get("/:adminId", async (req, res) => {
+  try {
+    const { adminId } = req.params;
+
+    if (!/^\d+$/.test(adminId)) {
+      return res.status(400).json({
         success: false,
-        message: error.message
+        message: "Invalid admin ID"
       });
     }
-  }
-);
 
+    const admin = await getAdmin(adminId);
 
-// ===============================
-// GET ALL ADMINS
-// ===============================
-router.get(
-  '/',
-  requireAdmin,
-  async (req, res) => {
-    try {
-      const admins =
-        await getAllAdmins();
-
-      res.json({
-        success: true,
-        admins
-      });
-    } catch (error) {
-      res.status(400).json({
+    if (!admin) {
+      return res.status(404).json({
         success: false,
-        message: error.message
+        message: "Admin not found"
       });
     }
+
+    return res.json({
+      success: true,
+      data: admin
+    });
+  } catch (error) {
+    console.error("Get admin error:", error.message);
+
+    return res.status(500).json({
+      success: false,
+      message: "Failed to get admin"
+    });
   }
-);
+});
 
+// Add an admin
+router.post("/", async (req, res) => {
+  try {
+    const { adminId, role, addedBy } = req.body || {};
 
-// ===============================
-// CREATE SUB-ADMIN
-// ===============================
-router.post(
-  '/',
-  requireAdmin,
-  async (req, res) => {
-    try {
-      const {
-        telegramId,
-        name,
-        username,
-        role,
-        permissions
-      } = req.body;
-
-      const admin =
-        await createAdmin(
-          String(telegramId),
-          {
-            name,
-            username,
-            role,
-            permissions
-          }
-        );
-
-      res.json({
-        success: true,
-        admin
-      });
-    } catch (error) {
-      console.error(
-        'Create admin error:',
-        error.message
-      );
-
-      res.status(400).json({
+    if (!adminId || !addedBy) {
+      return res.status(400).json({
         success: false,
-        message: error.message
+        message: "adminId and addedBy are required"
       });
     }
-  }
-);
 
+    const creatorIsAdmin = await isAdmin(addedBy);
 
-// ===============================
-// UPDATE ADMIN
-// ===============================
-router.put(
-  '/:telegramId',
-  requireAdmin,
-  async (req, res) => {
-    try {
-      const { telegramId } =
-        req.params;
-
-      const admin =
-        await updateAdmin(
-          String(telegramId),
-          req.body
-        );
-
-      res.json({
-        success: true,
-        admin
-      });
-    } catch (error) {
-      res.status(400).json({
+    if (!creatorIsAdmin) {
+      return res.status(403).json({
         success: false,
-        message: error.message
+        message: "Active admin access required"
       });
     }
-  }
-);
 
+    const creator = await getAdmin(addedBy);
 
-// ===============================
-// SUSPEND ADMIN
-// ===============================
-router.post(
-  '/:telegramId/suspend',
-  requireAdmin,
-  async (req, res) => {
-    try {
-      const { telegramId } =
-        req.params;
-
-      const admin =
-        await suspendAdmin(
-          String(telegramId)
-        );
-
-      res.json({
-        success: true,
-        admin
-      });
-    } catch (error) {
-      res.status(400).json({
+    if (creator.role !== "main_admin") {
+      return res.status(403).json({
         success: false,
-        message: error.message
+        message: "Only the main admin can add admins"
       });
     }
+
+    const admin = await addAdmin(
+      adminId,
+      role || "admin",
+      addedBy
+    );
+
+    return res.status(201).json({
+      success: true,
+      message: "Admin added",
+      data: admin
+    });
+  } catch (error) {
+    const clientErrors = [
+      "Invalid admin ID",
+      "Invalid admin role",
+      "Admin already exists"
+    ];
+
+    const knownError = clientErrors.includes(error.message);
+
+    return res.status(knownError ? 400 : 500).json({
+      success: false,
+      message: knownError
+        ? error.message
+        : "Failed to add admin"
+    });
   }
-);
+});
 
+// Activate or deactivate an admin
+router.patch("/:adminId/status", async (req, res) => {
+  try {
+    const { adminId } = req.params;
+    const { active, changedBy } = req.body || {};
 
-// ===============================
-// ACTIVATE ADMIN
-// ===============================
-router.post(
-  '/:telegramId/activate',
-  requireAdmin,
-  async (req, res) => {
-    try {
-      const { telegramId } =
-        req.params;
-
-      const admin =
-        await activateAdmin(
-          String(telegramId)
-        );
-
-      res.json({
-        success: true,
-        admin
-      });
-    } catch (error) {
-      res.status(400).json({
+    if (!/^\d+$/.test(adminId) || !changedBy) {
+      return res.status(400).json({
         success: false,
-        message: error.message
+        message: "Valid adminId and changedBy are required"
       });
     }
-  }
-);
 
-
-// ===============================
-// REMOVE SUB-ADMIN
-// ===============================
-router.delete(
-  '/:telegramId',
-  requireAdmin,
-  async (req, res) => {
-    try {
-      const { telegramId } =
-        req.params;
-
-      const result =
-        await removeAdmin(
-          String(telegramId)
-        );
-
-      res.json(result);
-    } catch (error) {
-      res.status(400).json({
+    if (typeof active !== "boolean") {
+      return res.status(400).json({
         success: false,
-        message: error.message
+        message: "active must be true or false"
       });
     }
-  }
-);
 
+    const creator = await getAdmin(changedBy);
+
+    if (!creator || creator.active !== true ||
+        creator.role !== "main_admin") {
+      return res.status(403).json({
+        success: false,
+        message: "Main admin access required"
+      });
+    }
+
+    const admin = await setAdminStatus(adminId, active);
+
+    return res.json({
+      success: true,
+      message: "Admin status updated",
+      data: admin
+    });
+  } catch (error) {
+    const clientErrors = [
+      "Admin not found",
+      "Main admin cannot be deactivated",
+      "Active status must be true or false"
+    ];
+
+    const knownError = clientErrors.includes(error.message);
+
+    return res.status(
+      error.message === "Admin not found"
+        ? 404
+        : knownError
+          ? 400
+          : 500
+    ).json({
+      success: false,
+      message: knownError
+        ? error.message
+        : "Failed to update admin status"
+    });
+  }
+});
+
+// Remove an admin
+router.delete("/:adminId", async (req, res) => {
+  try {
+    const { adminId } = req.params;
+    const { removedBy } = req.body || {};
+
+    if (!/^\d+$/.test(adminId) || !removedBy) {
+      return res.status(400).json({
+        success: false,
+        message: "Valid adminId and removedBy are required"
+      });
+    }
+
+    const creator = await getAdmin(removedBy);
+
+    if (!creator || creator.active !== true ||
+        creator.role !== "main_admin") {
+      return res.status(403).json({
+        success: false,
+        message: "Main admin access required"
+      });
+    }
+
+    const result = await removeAdmin(adminId);
+
+    return res.json({
+      success: true,
+      message: "Admin removed",
+      data: result
+    });
+  } catch (error) {
+    const clientErrors = [
+      "Admin not found",
+      "Main admin cannot be removed"
+    ];
+
+    const knownError = clientErrors.includes(error.message);
+
+    return res.status(
+      error.message === "Admin not found"
+        ? 404
+        : knownError
+          ? 400
+          : 500
+    ).json({
+      success: false,
+      message: knownError
+        ? error.message
+        : "Failed to remove admin"
+    });
+  }
+});
 
 export default router;

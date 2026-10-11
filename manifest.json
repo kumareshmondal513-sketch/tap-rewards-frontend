@@ -1,0 +1,10 @@
+{
+  "name": "Tap Rewards",
+  "short_name": "TapRewards",
+  "description": "Telegram Tap-to-Earn Mini App",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#101827",
+  "theme_color": "#172554",
+  "orientation": "portrait"
+}

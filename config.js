@@ -1,21 +1,22 @@
-export const APP_CONFIG = {
-  name: 'Tap Rewards',
+import dotenv from "dotenv";
 
-  version: '1.0.0',
+dotenv.config();
 
-  apiBaseUrl: '',
+export const config = {
+  botToken: process.env.BOT_TOKEN || "",
+  port: Number(process.env.PORT) || 3000,
+  nodeEnv: process.env.NODE_ENV || "development",
 
-  tap: {
-    rewardPerTap: 1,
-    energyPerTap: 1
+  firebase: {
+    projectId: process.env.FIREBASE_PROJECT_ID || "",
+    databaseURL: process.env.FIREBASE_DATABASE_URL || "",
+    clientEmail: process.env.FIREBASE_CLIENT_EMAIL || "",
+    privateKey: (process.env.FIREBASE_PRIVATE_KEY || "")
+      .replace(/\\n/g, "\n")
   },
 
-  energy: {
-    defaultMax: 1000,
-    regenPerSecond: 1
-  },
-
-  referral: {
-    maxTeamSize: 200
-  }
+  adminId: process.env.ADMIN_ID || "",
+  webAppUrl: process.env.WEBAPP_URL || ""
 };
+
+export default config;

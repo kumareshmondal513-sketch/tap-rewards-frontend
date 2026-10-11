@@ -1,115 +1,100 @@
-import { db } from './firebase.js';
+import { database } from "./firebase.js";
 
 const DEFAULT_MAX_ENERGY = 1000;
-const ENERGY_REGEN_PER_SECOND = 1;
+const REGEN_INTERVAL_MS = 5000;
+const ENERGY_PER_INTERVAL = 1;
 
-export async function getEnergy(telegramId) {
-  if (!db) {
-    throw new Error('Firebase is not configured.');
+function getUsersRef() {
+  if (!database) {
+    throw new Error("Firebase database is not configured");
   }
 
-  const ref = db.ref(`users/${telegramId}`);
-  const snapshot = await ref.once('value');
+  return database.ref("users");
+}
+
+function calculateEnergy(user) {
+  const maxEnergy = Math.max(
+    1,
+    Number(user.maxEnergy) || DEFAULT_MAX_ENERGY
+  );
+
+  const currentEnergy = Math.max(
+    0,
+    Math.min(maxEnergy, Number(user.energy) || 0)
+  );
+
+  const lastUpdate = Number(user.energyUpdatedAt) || Date.now();
+  const elapsed = Math.max(0, Date.now() - lastUpdate);
+  const intervals = Math.floor(elapsed / REGEN_INTERVAL_MS);
+
+  const energy = Math.min(
+    maxEnergy,
+    currentEnergy + intervals * ENERGY_PER_INTERVAL
+  );
+
+  const energyUpdatedAt =
+    energy >= maxEnergy
+      ? Date.now()
+      : lastUpdate + intervals * REGEN_INTERVAL_MS;
+
+  return {
+    energy,
+    maxEnergy,
+    energyUpdatedAt
+  };
+}
+
+export async function getEnergy(userId) {
+  const userRef = getUsersRef().child(String(userId));
+  const snapshot = await userRef.get();
 
   if (!snapshot.exists()) {
-    throw new Error('User not found.');
+    throw new Error("User not found");
   }
 
   const user = snapshot.val();
+  const result = calculateEnergy(user);
 
-  const maxEnergy =
-    Number(user.maxEnergy || DEFAULT_MAX_ENERGY);
-
-  const currentEnergy =
-    Number(user.energy || 0);
+  await userRef.update(result);
 
   return {
-    energy: Math.min(currentEnergy, maxEnergy),
-    maxEnergy,
-    regenPerSecond: ENERGY_REGEN_PER_SECOND
+    userId: String(userId),
+    ...result
   };
 }
 
-export async function refillEnergy(telegramId) {
-  if (!db) {
-    throw new Error('Firebase is not configured.');
-  }
+export async function refillEnergy(userId) {
+  const userRef = getUsersRef().child(String(userId));
 
-  const ref = db.ref(`users/${telegramId}`);
-
-  const result = await ref.transaction((user) => {
+  const transaction = await userRef.transaction((user) => {
     if (!user) {
-      return user;
+      return;
     }
 
-    const maxEnergy =
-      Number(user.maxEnergy || DEFAULT_MAX_ENERGY);
-
-    user.energy = maxEnergy;
-    user.updatedAt = Date.now();
-
-    return user;
-  });
-
-  if (!result.committed) {
-    throw new Error('Energy refill failed.');
-  }
-
-  return {
-    energy: result.snapshot.val().energy,
-    maxEnergy: result.snapshot.val().maxEnergy
-  };
-}
-
-export async function upgradeMaxEnergy(
-  telegramId,
-  increase = 1000
-) {
-  if (!db) {
-    throw new Error('Firebase is not configured.');
-  }
-
-  increase = Number(increase);
-
-  if (!Number.isInteger(increase) || increase <= 0) {
-    throw new Error('Invalid energy upgrade.');
-  }
-
-  const ref = db.ref(`users/${telegramId}`);
-
-  const result = await ref.transaction((user) => {
-    if (!user) {
-      return user;
-    }
-
-    const currentMax =
-      Number(user.maxEnergy || DEFAULT_MAX_ENERGY);
-
-    const currentEnergy =
-      Number(user.energy || 0);
-
-    const newMax = currentMax + increase;
-
-    user.maxEnergy = newMax;
-
-    user.energy = Math.min(
-      currentEnergy + increase,
-      newMax
+    const maxEnergy = Math.max(
+      1,
+      Number(user.maxEnergy) || DEFAULT_MAX_ENERGY
     );
 
+    user.energy = maxEnergy;
+    user.maxEnergy = maxEnergy;
+    user.energyUpdatedAt = Date.now();
     user.updatedAt = Date.now();
 
     return user;
   });
 
-  if (!result.committed) {
-    throw new Error('Energy upgrade failed.');
+  if (!transaction.committed) {
+    throw new Error("User not found");
   }
 
-  const user = result.snapshot.val();
+  const user = transaction.snapshot.val();
 
   return {
+    userId: String(userId),
     energy: user.energy,
     maxEnergy: user.maxEnergy
   };
 }
+
+export { DEFAULT_MAX_ENERGY, REGEN_INTERVAL_MS };

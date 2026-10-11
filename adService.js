@@ -1,92 +1,85 @@
-import { db } from './firebase.js';
+import { database } from "./firebase.js";
 
-
-// ===============================
-// GET ALL ADS
-// ===============================
-export async function getAds() {
-  if (!db) {
-    throw new Error('Firebase is not configured.');
+function getAdsRef() {
+  if (!database) {
+    throw new Error("Firebase database is not configured");
   }
 
-  const snapshot = await db
-    .ref('ads')
-    .once('value');
+  return database.ref("ads");
+}
+
+export async function getAllAds() {
+  const snapshot = await getAdsRef().get();
 
   if (!snapshot.exists()) {
     return [];
   }
 
-  const data = snapshot.val();
-
-  return Object.entries(data).map(
-    ([id, ad]) => ({
-      id,
-      ...ad
-    })
-  );
+  return Object.entries(snapshot.val()).map(([id, ad]) => ({
+    id,
+    ...ad
+  }));
 }
 
+export async function getActiveAds() {
+  const ads = await getAllAds();
 
-// ===============================
-// GET ONE AD
-// ===============================
+  return ads.filter((ad) => ad.active === true);
+}
+
 export async function getAd(adId) {
-  if (!db) {
-    throw new Error('Firebase is not configured.');
-  }
-
-  const snapshot = await db
-    .ref(`ads/${adId}`)
-    .once('value');
+  const snapshot = await getAdsRef()
+    .child(String(adId))
+    .get();
 
   if (!snapshot.exists()) {
-    throw new Error('Ad not found.');
+    return null;
   }
 
   return {
-    id: adId,
+    id: String(adId),
     ...snapshot.val()
   };
 }
 
+export async function createAd(data = {}) {
+  const title = String(data.title || "").trim();
+  const url = String(data.url || "").trim();
+  const type = String(data.type || "general");
+  const duration = Number(data.duration ?? 10);
 
-// ===============================
-// CREATE AD
-// ===============================
-export async function createAd(adData) {
-  if (!db) {
-    throw new Error('Firebase is not configured.');
+  if (!title || title.length > 120) {
+    throw new Error("Ad title is required and must be under 120 characters");
   }
 
-  if (!adData.title) {
-    throw new Error('Ad title is required.');
+  let parsedUrl;
+
+  try {
+    parsedUrl = new URL(url);
+  } catch {
+    throw new Error("Invalid ad URL");
   }
 
-  if (!adData.url) {
-    throw new Error('Ad URL is required.');
+  if (!["https:", "http:"].includes(parsedUrl.protocol)) {
+    throw new Error("Ad URL must use HTTP or HTTPS");
   }
 
-  const adRef = db
-    .ref('ads')
-    .push();
+  if (
+    !Number.isSafeInteger(duration) ||
+    duration < 0 ||
+    duration > 3600
+  ) {
+    throw new Error("Ad duration must be between 0 and 3600 seconds");
+  }
+
+  const adRef = getAdsRef().push();
 
   const ad = {
-    title: adData.title,
-    description:
-      adData.description || '',
-    url: adData.url,
-    reward: Number(
-      adData.reward || 0
-    ),
-    duration: Number(
-      adData.duration || 10
-    ),
-    rewardMultiplier: Number(
-      adData.rewardMultiplier || 1
-    ),
-    enabled:
-      adData.enabled !== false,
+    title,
+    url: parsedUrl.href,
+    type,
+    duration,
+    active: true,
     createdAt: Date.now(),
     updatedAt: Date.now()
   };
@@ -99,81 +92,92 @@ export async function createAd(adData) {
   };
 }
 
-
-// ===============================
-// UPDATE AD
-// ===============================
-export async function updateAd(
-  adId,
-  updates
-) {
-  if (!db) {
-    throw new Error('Firebase is not configured.');
-  }
-
-  const adRef =
-    db.ref(`ads/${adId}`);
-
-  const snapshot =
-    await adRef.once('value');
+export async function updateAd(adId, updates = {}) {
+  const adRef = getAdsRef().child(String(adId));
+  const snapshot = await adRef.get();
 
   if (!snapshot.exists()) {
-    throw new Error('Ad not found.');
+    throw new Error("Ad not found");
   }
 
-  await adRef.update({
-    ...updates,
-    updatedAt: Date.now()
-  });
+  const safeUpdates = {};
 
-  const updated =
-    await adRef.once('value');
+  if (updates.title !== undefined) {
+    const title = String(updates.title).trim();
+
+    if (!title || title.length > 120) {
+      throw new Error("Invalid ad title");
+    }
+
+    safeUpdates.title = title;
+  }
+
+  if (updates.url !== undefined) {
+    let parsedUrl;
+
+    try {
+      parsedUrl = new URL(String(updates.url).trim());
+    } catch {
+      throw new Error("Invalid ad URL");
+    }
+
+    if (!["https:", "http:"].includes(parsedUrl.protocol)) {
+      throw new Error("Ad URL must use HTTP or HTTPS");
+    }
+
+    safeUpdates.url = parsedUrl.href;
+  }
+
+  if (updates.duration !== undefined) {
+    const duration = Number(updates.duration);
+
+    if (
+      !Number.isSafeInteger(duration) ||
+      duration < 0 ||
+      duration > 3600
+    ) {
+      throw new Error("Ad duration must be between 0 and 3600 seconds");
+    }
+
+    safeUpdates.duration = duration;
+  }
+
+  if (updates.type !== undefined) {
+    safeUpdates.type = String(updates.type);
+  }
+
+  if (typeof updates.active === "boolean") {
+    safeUpdates.active = updates.active;
+  }
+
+  if (Object.keys(safeUpdates).length === 0) {
+    throw new Error("No valid ad updates provided");
+  }
+
+  safeUpdates.updatedAt = Date.now();
+
+  await adRef.update(safeUpdates);
+
+  const updated = await adRef.get();
 
   return {
-    id: adId,
+    id: String(adId),
     ...updated.val()
   };
 }
 
-
-// ===============================
-// DELETE AD
-// ===============================
 export async function deleteAd(adId) {
-  if (!db) {
-    throw new Error('Firebase is not configured.');
-  }
-
-  const adRef =
-    db.ref(`ads/${adId}`);
-
-  const snapshot =
-    await adRef.once('value');
+  const adRef = getAdsRef().child(String(adId));
+  const snapshot = await adRef.get();
 
   if (!snapshot.exists()) {
-    throw new Error('Ad not found.');
+    throw new Error("Ad not found");
   }
 
   await adRef.remove();
 
   return {
     success: true,
-    message: 'Ad deleted successfully.'
+    adId: String(adId)
   };
-}
-
-
-// ===============================
-// ENABLE / DISABLE AD
-// ===============================
-export async function setAdStatus(
-  adId,
-  enabled
-) {
-  return updateAd(
-    adId,
-    {
-      enabled: Boolean(enabled)
-    }
-  );
 }

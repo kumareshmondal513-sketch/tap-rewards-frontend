@@ -1,35 +1,49 @@
-<!doctype html>
-<html lang="bn">
-  <head>
-    <meta charset="UTF-8" />
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta
+    name="viewport"
+    content="width=device-width, initial-scale=1.0"
+  >
 
-    <meta
-      name="viewport"
-      content="width=device-width, initial-scale=1.0"
-    />
+  <meta name="theme-color" content="#101827">
+  <meta
+    name="description"
+    content="Tap Rewards Telegram Mini App"
+  >
 
-    <meta
-      name="theme-color"
-      content="#111827"
-    />
+  <title>Tap Rewards</title>
 
-    <meta
-      name="description"
-      content="Telegram Tap-to-Earn Mini App"
-    />
+  <link rel="icon" href="./icon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="./style.css">
 
-    <title>Tap Rewards</title>
-  </head>
+  <script src="https://telegram.org/js/telegram-web-app.js"></script>
+</head>
 
-  <body>
-    <div id="root"></div>
+<body>
+  <main class="app">
+    <header>
+      <h1>Tap Rewards</h1>
+      <p>Welcome, <span id="user-name">Player</span>!</p>
+    </header>
 
-    <script
-      src="https://telegram.org/js/telegram-web-app.js"
-    ></script>
+    <section class="balance-card">
+      <p>Your Balance</p>
+      <h2 id="balance">0</h2>
+      <p>Coins</p>
+    </section>
 
-    type="module"
-      src="/src/main.jsx"
-    ></script>
-  </body>
+    <section class="tap-section">
+      <button id="tap-button" type="button">
+        TAP
+      </button>
+      <p id="tap-message">Ready to play?</p>
+    </section>
+
+    <p id="notification" role="status"></p>
+  </main>
+
+  <script type="module" src="./main.js"></script>
+</body>
 </html>

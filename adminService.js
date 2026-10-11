@@ -1,282 +1,144 @@
-import { db } from './firebase.js';
-import config from './config.js';
+import { database } from "./firebase.js";
 
-
-// ===============================
-// CHECK MAIN ADMIN
-// ===============================
-export function isMainAdmin(telegramId) {
-  return (
-    String(telegramId) ===
-    String(config.telegram.adminId)
-  );
-}
-
-
-// ===============================
-// GET ADMIN
-// ===============================
-export async function getAdmin(telegramId) {
-  if (!db) {
-    throw new Error('Firebase is not configured.');
+function getAdminsRef() {
+  if (!database) {
+    throw new Error("Firebase database is not configured");
   }
 
-  const snapshot = await db
-    .ref(`admins/${telegramId}`)
-    .once('value');
+  return database.ref("admins");
+}
+
+export async function getAdmin(adminId) {
+  const snapshot = await getAdminsRef()
+    .child(String(adminId))
+    .get();
 
   if (!snapshot.exists()) {
     return null;
   }
 
-  return snapshot.val();
+  return {
+    id: String(adminId),
+    ...snapshot.val()
+  };
 }
 
-
-// ===============================
-// CHECK ADMIN ACCESS
-// ===============================
-export async function isAdmin(telegramId) {
-  if (isMainAdmin(telegramId)) {
-    return true;
+export async function isAdmin(adminId) {
+  if (!adminId) {
+    return false;
   }
 
-  const admin = await getAdmin(
-    String(telegramId)
-  );
+  const admin = await getAdmin(adminId);
 
-  return Boolean(
-    admin &&
-    admin.active !== false
-  );
+  return Boolean(admin && admin.active === true);
 }
 
+export async function getAllAdmins() {
+  const snapshot = await getAdminsRef().get();
 
-// ===============================
-// CREATE SUB-ADMIN
-// ===============================
-export async function createAdmin(
-  telegramId,
-  adminData = {}
+  if (!snapshot.exists()) {
+    return [];
+  }
+
+  return Object.entries(snapshot.val()).map(([id, admin]) => ({
+    id,
+    ...admin
+  }));
+}
+
+export async function addAdmin(
+  adminId,
+  role = "admin",
+  addedBy = "system"
 ) {
-  if (!db) {
-    throw new Error('Firebase is not configured.');
+  const id = String(adminId);
+
+  if (!/^\d+$/.test(id)) {
+    throw new Error("Invalid admin ID");
   }
 
-  if (!telegramId) {
-    throw new Error(
-      'Telegram ID is required.'
-    );
+  const allowedRoles = [
+    "main_admin",
+    "admin",
+    "moderator"
+  ];
+
+  if (!allowedRoles.includes(role)) {
+    throw new Error("Invalid admin role");
   }
 
-  const id = String(telegramId);
-
-  if (isMainAdmin(id)) {
-    throw new Error(
-      'Main Admin cannot be added as a Sub-Admin.'
-    );
-  }
-
-  const adminRef = db.ref(`admins/${id}`);
-
-  const snapshot =
-    await adminRef.once('value');
+  const adminRef = getAdminsRef().child(id);
+  const snapshot = await adminRef.get();
 
   if (snapshot.exists()) {
-    throw new Error(
-      'This user is already an admin.'
-    );
+    throw new Error("Admin already exists");
   }
 
   const admin = {
-    telegramId: id,
-    name: adminData.name || '',
-    username: adminData.username || '',
-    role: adminData.role || 'sub_admin',
+    role,
     active: true,
-    permissions:
-      adminData.permissions || {
-        users: true,
-        tasks: true,
-        rewards: true,
-        ads: true,
-        withdrawals: true,
-        settings: false
-      },
+    addedBy: String(addedBy),
     createdAt: Date.now(),
     updatedAt: Date.now()
   };
 
   await adminRef.set(admin);
 
-  return admin;
+  return {
+    id,
+    ...admin
+  };
 }
 
-
-// ===============================
-// UPDATE ADMIN
-// ===============================
-export async function updateAdmin(
-  telegramId,
-  updates
-) {
-  if (!db) {
-    throw new Error('Firebase is not configured.');
+export async function setAdminStatus(adminId, active) {
+  if (typeof active !== "boolean") {
+    throw new Error("Active status must be true or false");
   }
 
-  const id = String(telegramId);
-
-  if (isMainAdmin(id)) {
-    throw new Error(
-      'Main Admin cannot be modified here.'
-    );
-  }
-
-  const adminRef = db.ref(`admins/${id}`);
-
-  const snapshot =
-    await adminRef.once('value');
+  const adminRef = getAdminsRef().child(String(adminId));
+  const snapshot = await adminRef.get();
 
   if (!snapshot.exists()) {
-    throw new Error(
-      'Admin not found.'
-    );
+    throw new Error("Admin not found");
+  }
+
+  const admin = snapshot.val();
+
+  if (admin.role === "main_admin" && active === false) {
+    throw new Error("Main admin cannot be deactivated");
   }
 
   await adminRef.update({
-    ...updates,
+    active,
     updatedAt: Date.now()
   });
 
-  const updated =
-    await adminRef.once('value');
+  const updated = await adminRef.get();
 
-  return updated.val();
+  return {
+    id: String(adminId),
+    ...updated.val()
+  };
 }
 
-
-// ===============================
-// SUSPEND ADMIN
-// ===============================
-export async function suspendAdmin(
-  telegramId
-) {
-  return updateAdmin(
-    String(telegramId),
-    {
-      active: false
-    }
-  );
-}
-
-
-// ===============================
-// ACTIVATE ADMIN
-// ===============================
-export async function activateAdmin(
-  telegramId
-) {
-  return updateAdmin(
-    String(telegramId),
-    {
-      active: true
-    }
-  );
-}
-
-
-// ===============================
-// REMOVE SUB-ADMIN
-// ===============================
-export async function removeAdmin(
-  telegramId
-) {
-  if (!db) {
-    throw new Error('Firebase is not configured.');
-  }
-
-  const id = String(telegramId);
-
-  if (isMainAdmin(id)) {
-    throw new Error(
-      'Main Admin cannot be removed.'
-    );
-  }
-
-  const adminRef = db.ref(`admins/${id}`);
-
-  const snapshot =
-    await adminRef.once('value');
+export async function removeAdmin(adminId) {
+  const adminRef = getAdminsRef().child(String(adminId));
+  const snapshot = await adminRef.get();
 
   if (!snapshot.exists()) {
-    throw new Error(
-      'Admin not found.'
-    );
+    throw new Error("Admin not found");
+  }
+
+  const admin = snapshot.val();
+
+  if (admin.role === "main_admin") {
+    throw new Error("Main admin cannot be removed");
   }
 
   await adminRef.remove();
 
   return {
     success: true,
-    message: 'Sub-Admin removed successfully.'
+    adminId: String(adminId)
   };
-}
-
-
-// ===============================
-// GET ALL ADMINS
-// ===============================
-export async function getAllAdmins() {
-  if (!db) {
-    throw new Error('Firebase is not configured.');
-  }
-
-  const snapshot =
-    await db.ref('admins').once('value');
-
-  if (!snapshot.exists()) {
-    return [];
-  }
-
-  const data = snapshot.val();
-
-  return Object.entries(data).map(
-    ([id, admin]) => ({
-      id,
-      ...admin
-    })
-  );
-}
-
-
-// ===============================
-// GET ADMIN PERMISSIONS
-// ===============================
-export async function getAdminPermissions(
-  telegramId
-) {
-  if (isMainAdmin(telegramId)) {
-    return {
-      users: true,
-      tasks: true,
-      rewards: true,
-      ads: true,
-      withdrawals: true,
-      settings: true,
-      admins: true
-    };
-  }
-
-  const admin = await getAdmin(
-    String(telegramId)
-  );
-
-  if (
-    !admin ||
-    admin.active === false
-  ) {
-    return {};
-  }
-
-  return admin.permissions || {};
 }

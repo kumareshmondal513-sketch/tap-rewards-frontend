@@ -1,194 +1,215 @@
-import express from 'express';
-
+import express from "express";
 import {
-  getAds,
+  getAllAds,
+  getActiveAds,
   getAd,
   createAd,
   updateAd,
-  deleteAd,
-  setAdStatus
-} from './adService.js';
+  deleteAd
+} from "./adService.js";
+import { getAdmin } from "./adminService.js";
 
 const router = express.Router();
 
+async function requireMainAdmin(adminId) {
+  if (!adminId || !/^\d+$/.test(String(adminId))) {
+    return false;
+  }
 
-// ===============================
-// GET ALL ADS
-// ===============================
-router.get('/', async (req, res) => {
+  const admin = await getAdmin(adminId);
+
+  return Boolean(
+    admin &&
+    admin.active === true &&
+    admin.role === "main_admin"
+  );
+}
+
+// Public: list active ads
+router.get("/active", async (req, res) => {
   try {
-    const ads = await getAds();
+    const ads = await getActiveAds();
 
-    res.json({
+    return res.json({
       success: true,
-      ads
+      count: ads.length,
+      data: ads
     });
   } catch (error) {
-    console.error(
-      'Get ads error:',
-      error.message
-    );
+    console.error("Get active ads error:", error.message);
 
-    res.status(400).json({
+    return res.status(500).json({
       success: false,
-      message: error.message
+      message: "Failed to get active ads"
     });
   }
 });
 
-
-// ===============================
-// GET ONE AD
-// ===============================
-router.get('/:adId', async (req, res) => {
+// Admin: list all ads
+router.get("/", async (req, res) => {
   try {
-    const { adId } = req.params;
+    if (!await requireMainAdmin(req.get("x-admin-id"))) {
+      return res.status(403).json({
+        success: false,
+        message: "Main admin access required"
+      });
+    }
 
-    const ad = await getAd(
-      String(adId)
-    );
+    const ads = await getAllAds();
 
-    res.json({
+    return res.json({
       success: true,
-      ad
+      count: ads.length,
+      data: ads
     });
   } catch (error) {
-    res.status(404).json({
+    console.error("Get ads error:", error.message);
+
+    return res.status(500).json({
       success: false,
-      message: error.message
+      message: "Failed to get ads"
     });
   }
 });
 
-
-// ===============================
-// CREATE AD
-// ===============================
-router.post('/', async (req, res) => {
+// Admin: get one ad
+router.get("/:adId", async (req, res) => {
   try {
-    const ad = await createAd(
-      req.body
-    );
+    if (!await requireMainAdmin(req.get("x-admin-id"))) {
+      return res.status(403).json({
+        success: false,
+        message: "Main admin access required"
+      });
+    }
 
-    res.json({
+    const ad = await getAd(req.params.adId);
+
+    if (!ad) {
+      return res.status(404).json({
+        success: false,
+        message: "Ad not found"
+      });
+    }
+
+    return res.json({
       success: true,
-      ad
+      data: ad
     });
   } catch (error) {
-    console.error(
-      'Create ad error:',
-      error.message
-    );
+    console.error("Get ad error:", error.message);
 
-    res.status(400).json({
+    return res.status(500).json({
       success: false,
-      message: error.message
+      message: "Failed to get ad"
     });
   }
 });
 
+// Admin: create an ad
+router.post("/", async (req, res) => {
+  try {
+    const adminId = req.get("x-admin-id");
 
-// ===============================
-// UPDATE AD
-// ===============================
-router.put(
-  '/:adId',
-  async (req, res) => {
-    try {
-      const { adId } =
-        req.params;
-
-      const ad = await updateAd(
-        String(adId),
-        req.body
-      );
-
-      res.json({
-        success: true,
-        ad
-      });
-    } catch (error) {
-      console.error(
-        'Update ad error:',
-        error.message
-      );
-
-      res.status(400).json({
+    if (!await requireMainAdmin(adminId)) {
+      return res.status(403).json({
         success: false,
-        message: error.message
+        message: "Main admin access required"
       });
     }
+
+    const ad = await createAd(req.body || {});
+
+    return res.status(201).json({
+      success: true,
+      message: "Ad created",
+      data: ad
+    });
+  } catch (error) {
+    const clientErrors = [
+      "Invalid ad URL",
+      "Ad URL must use HTTP or HTTPS",
+      "Ad duration must be between 0 and 3600 seconds"
+    ];
+
+    const knownError =
+      clientErrors.includes(error.message) ||
+      error.message.startsWith("Ad title");
+
+    return res.status(knownError ? 400 : 500).json({
+      success: false,
+      message: knownError ? error.message : "Failed to create ad"
+    });
   }
-);
+});
 
-
-// ===============================
-// ENABLE / DISABLE AD
-// ===============================
-router.post(
-  '/:adId/status',
-  async (req, res) => {
-    try {
-      const { adId } =
-        req.params;
-
-      const { enabled } =
-        req.body;
-
-      const ad =
-        await setAdStatus(
-          String(adId),
-          enabled
-        );
-
-      res.json({
-        success: true,
-        ad
-      });
-    } catch (error) {
-      console.error(
-        'Ad status error:',
-        error.message
-      );
-
-      res.status(400).json({
+// Admin: update an ad
+router.patch("/:adId", async (req, res) => {
+  try {
+    if (!await requireMainAdmin(req.get("x-admin-id"))) {
+      return res.status(403).json({
         success: false,
-        message: error.message
+        message: "Main admin access required"
       });
     }
+
+    const ad = await updateAd(
+      req.params.adId,
+      req.body || {}
+    );
+
+    return res.json({
+      success: true,
+      message: "Ad updated",
+      data: ad
+    });
+  } catch (error) {
+    const knownError = [
+      "Ad not found",
+      "Invalid ad title",
+      "Invalid ad URL",
+      "Ad URL must use HTTP or HTTPS",
+      "Ad duration must be between 0 and 3600 seconds",
+      "No valid ad updates provided"
+    ].includes(error.message);
+
+    return res.status(
+      error.message === "Ad not found"
+        ? 404
+        : knownError
+          ? 400
+          : 500
+    ).json({
+      success: false,
+      message: knownError ? error.message : "Failed to update ad"
+    });
   }
-);
+});
 
-
-// ===============================
-// DELETE AD
-// ===============================
-router.delete(
-  '/:adId',
-  async (req, res) => {
-    try {
-      const { adId } =
-        req.params;
-
-      const result =
-        await deleteAd(
-          String(adId)
-        );
-
-      res.json(result);
-    } catch (error) {
-      console.error(
-        'Delete ad error:',
-        error.message
-      );
-
-      res.status(400).json({
+// Admin: delete an ad
+router.delete("/:adId", async (req, res) => {
+  try {
+    if (!await requireMainAdmin(req.get("x-admin-id"))) {
+      return res.status(403).json({
         success: false,
-        message: error.message
+        message: "Main admin access required"
       });
     }
-  }
-);
 
+    const result = await deleteAd(req.params.adId);
+
+    return res.json({
+      success: true,
+      message: "Ad deleted",
+      data: result
+    });
+  } catch (error) {
+    const notFound = error.message === "Ad not found";
+
+    return res.status(notFound ? 404 : 500).json({
+      success: false,
+      message: notFound ? error.message : "Failed to delete ad"
+    });
+  }
+});
 
 export default router;

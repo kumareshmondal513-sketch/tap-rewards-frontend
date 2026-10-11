@@ -4,373 +4,84 @@
   padding: 0;
 }
 
-html,
-body,
-#root {
-  width: 100%;
-  min-height: 100%;
-}
-
 body {
-  font-family:
-    Arial,
-    "Noto Sans Bengali",
-    sans-serif;
-
-  background: #111827;
+  min-height: 100vh;
+  font-family: Arial, sans-serif;
   color: #ffffff;
-
-  -webkit-tap-highlight-color:
-    transparent;
-}
-
-button {
-  font-family: inherit;
+  background: linear-gradient(
+    145deg,
+    #101827,
+    #172554,
+    #312e81
+  );
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 20px;
 }
 
 .app {
   width: 100%;
-  min-height: 100vh;
-  background:
-    radial-gradient(
-      circle at top,
-      #263653 0%,
-      #111827 45%,
-      #090d16 100%
-    );
-
-  overflow-x: hidden;
+  max-width: 420px;
+  text-align: center;
 }
 
-.loading-screen {
-  display: flex;
-  align-items: center;
-  justify-content: center;
+h1 {
+  font-size: 32px;
+  margin-bottom: 10px;
+  color: #facc15;
 }
 
-.loader {
-  font-size: 20px;
-  font-weight: 700;
+.subtitle {
+  color: #cbd5e1;
+  margin-bottom: 30px;
 }
-
-
-/* ==============================
-   TOP BAR
-============================== */
-
-.top-bar {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-
-  padding: 20px 18px 12px;
-}
-
-.app-title {
-  font-size: 22px;
-  font-weight: 800;
-}
-
-.welcome {
-  margin-top: 5px;
-
-  color: #aeb9ca;
-
-  font-size: 14px;
-}
-
-.level-badge {
-  padding: 8px 13px;
-
-  border-radius: 20px;
-
-  background: #fbbf24;
-  color: #111827;
-
-  font-size: 13px;
-  font-weight: 800;
-}
-
-
-/* ==============================
-   MAIN CONTENT
-============================== */
-
-.main-content {
-  width: 100%;
-  max-width: 520px;
-
-  margin: 0 auto;
-
-  padding: 10px 18px 30px;
-}
-
-
-/* ==============================
-   BALANCE CARD
-============================== */
 
 .balance-card {
-  text-align: center;
-
-  padding: 24px 15px;
-
-  border: 1px solid
-    rgba(255, 255, 255, 0.08);
-
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.15);
   border-radius: 24px;
-
-  background:
-    rgba(255, 255, 255, 0.06);
-
-  box-shadow:
-    0 15px 40px
-    rgba(0, 0, 0, 0.25);
+  padding: 28px 20px;
+  margin-bottom: 30px;
 }
 
-.balance-label {
-  color: #9ca9bd;
-
-  font-size: 14px;
-  font-weight: 600;
+.balance-card p {
+  color: #cbd5e1;
+  font-size: 16px;
 }
 
-.balance {
-  margin-top: 8px;
-
-  font-size: 38px;
-  font-weight: 900;
-
-  letter-spacing: -1px;
+#balance {
+  font-size: 42px;
+  margin: 15px 0;
+  color: #facc15;
+  overflow-wrap: anywhere;
 }
 
-.xp {
-  margin-top: 8px;
-
-  color: #aeb9ca;
-
-  font-size: 13px;
-}
-
-
-/* ==============================
-   ENERGY
-============================== */
-
-.energy-section {
-  margin-top: 20px;
-}
-
-.energy-row {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-
-  margin-bottom: 8px;
-
-  color: #d6deeb;
-
-  font-size: 14px;
-  font-weight: 700;
-}
-
-.energy-bar {
-  width: 100%;
-  height: 12px;
-
-  overflow: hidden;
-
-  border-radius: 20px;
-
-  background: #263246;
-}
-
-.energy-fill {
-  height: 100%;
-
-  border-radius: inherit;
-
-  background:
-    linear-gradient(
-      90deg,
-      #fbbf24,
-      #f97316
-    );
-
-  transition:
-    width 0.2s ease;
-}
-
-
-/* ==============================
-   TAP SECTION
-============================== */
-
-.tap-section {
-  display: flex;
-
-  align-items: center;
-  justify-content: center;
-
-  padding: 35px 0;
-}
-
-.tap-button {
-  width: 220px;
-  height: 220px;
-
-  border: none;
+#tapButton {
+  width: 190px;
+  height: 190px;
+  border: 6px solid #fde047;
   border-radius: 50%;
-
+  background: linear-gradient(
+    145deg,
+    #facc15,
+    #f59e0b
+  );
+  color: #422006;
+  font-size: 22px;
+  font-weight: bold;
   cursor: pointer;
-
-  background:
-    radial-gradient(
-      circle,
-      #facc15 0%,
-      #f59e0b 55%,
-      #d97706 100%
-    );
-
-  color: #111827;
-
-  box-shadow:
-    0 0 0 10px
-      rgba(251, 191, 36, 0.08),
-    0 20px 45px
-      rgba(245, 158, 11, 0.3);
-
-  display: flex;
-  flex-direction: column;
-
-  align-items: center;
-  justify-content: center;
-
-  transition:
-    transform 0.08s ease,
-    box-shadow 0.08s ease;
+  box-shadow: 0 10px 30px rgba(250, 204, 21, 0.25);
+  transition: transform 0.12s ease;
 }
 
-.tap-button:active {
+#tapButton:active {
   transform: scale(0.94);
-
-  box-shadow:
-    0 0 0 6px
-      rgba(251, 191, 36, 0.08),
-    0 10px 25px
-      rgba(245, 158, 11, 0.25);
 }
 
-.tap-button:disabled {
-  cursor: not-allowed;
-
-  opacity: 0.45;
-
-  filter: grayscale(0.5);
-}
-
-.tap-icon {
-  font-size: 58px;
-}
-
-.tap-text {
-  margin-top: 5px;
-
-  font-size: 26px;
-  font-weight: 900;
-}
-
-
-/* ==============================
-   QUICK ACTIONS
-============================== */
-
-.quick-actions {
-  display: grid;
-
-  grid-template-columns:
-    repeat(4, 1fr);
-
-  gap: 10px;
-}
-
-.quick-actions button {
-  min-height: 82px;
-
-  border: 1px solid
-    rgba(255, 255, 255, 0.08);
-
-  border-radius: 17px;
-
-  background:
-    rgba(255, 255, 255, 0.06);
-
-  color: #ffffff;
-
-  cursor: pointer;
-
-  display: flex;
-  flex-direction: column;
-
-  align-items: center;
-  justify-content: center;
-
-  gap: 7px;
-
-  font-size: 24px;
-
-  transition:
-    background 0.15s ease,
-    transform 0.1s ease;
-}
-
-.quick-actions button:active {
-  transform: scale(0.96);
-
-  background:
-    rgba(255, 255, 255, 0.1);
-}
-
-.quick-actions span {
-  color: #b9c4d5;
-
-  font-size: 11px;
-  font-weight: 700;
-}
-
-
-/* ==============================
-   MOBILE
-============================== */
-
-@media (max-width: 380px) {
-  .main-content {
-    padding-left: 12px;
-    padding-right: 12px;
-  }
-
-  .balance {
-    font-size: 32px;
-  }
-
-  .tap-button {
-    width: 190px;
-    height: 190px;
-  }
-
-  .tap-icon {
-    font-size: 48px;
-  }
-
-  .tap-text {
-    font-size: 23px;
-  }
-
-  .quick-actions {
-    gap: 7px;
-  }
-
-  .quick-actions button {
-    min-height: 76px;
-  }
+#message {
+  margin-top: 28px;
+  color: #cbd5e1;
+  font-size: 14px;
+  line-height: 1.6;
 }

@@ -1,84 +1,70 @@
-import express from 'express';
+import express from "express";
 import {
   getEnergy,
-  refillEnergy,
-  upgradeMaxEnergy
-} from './energyService.js';
+  refillEnergy
+} from "./energyService.js";
 
 const router = express.Router();
 
-router.get('/:telegramId', async (req, res) => {
+router.get("/:userId", async (req, res) => {
   try {
-    const energy = await getEnergy(
-      String(req.params.telegramId)
-    );
+    const { userId } = req.params;
 
-    res.json({
+    if (!/^\d+$/.test(userId)) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid user ID"
+      });
+    }
+
+    const energy = await getEnergy(userId);
+
+    return res.json({
       success: true,
-      energy
+      data: energy
     });
   } catch (error) {
-    res.status(400).json({
+    const status = error.message === "User not found"
+      ? 404
+      : 500;
+
+    return res.status(status).json({
       success: false,
-      message: error.message
+      message: status === 500
+        ? "Internal server error"
+        : error.message
     });
   }
 });
 
-router.post('/refill', async (req, res) => {
+router.post("/:userId/refill", async (req, res) => {
   try {
-    const { telegramId } = req.body;
+    const { userId } = req.params;
 
-    if (!telegramId) {
+    if (!/^\d+$/.test(userId)) {
       return res.status(400).json({
         success: false,
-        message: 'telegramId is required.'
+        message: "Invalid user ID"
       });
     }
 
-    const result = await refillEnergy(
-      String(telegramId)
-    );
+    const result = await refillEnergy(userId);
 
-    res.json({
+    return res.json({
       success: true,
-      energy: result
+      message: "Energy refilled",
+      data: result
     });
   } catch (error) {
-    res.status(400).json({
+    const status = error.message === "User not found"
+      ? 404
+      : 500;
+
+    return res.status(status).json({
       success: false,
-      message: error.message
-    });
-  }
-});
-
-router.post('/upgrade', async (req, res) => {
-  try {
-    const {
-      telegramId,
-      increase
-    } = req.body;
-
-    if (!telegramId) {
-      return res.status(400).json({
-        success: false,
-        message: 'telegramId is required.'
-      });
-    }
-
-    const result = await upgradeMaxEnergy(
-      String(telegramId),
-      increase || 1000
-    );
-
-    res.json({
-      success: true,
-      energy: result
-    });
-  } catch (error) {
-    res.status(400).json({
-      success: false,
-      message: error.message
+      message: status === 500
+        ? "Internal server error"
+        : error.message
     });
   }
 });

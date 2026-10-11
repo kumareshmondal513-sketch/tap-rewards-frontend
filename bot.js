@@ -1,94 +1,83 @@
-import { Telegraf } from 'telegraf';
-import config from './config.js';
-import {
-  createUser,
-  getUser
-} from './userService.js';
+import { database } from "./firebase.js";
 
-let bot = null;
+function getUsersRef() {
+  if (!database) {
+    throw new Error("Firebase database is not configured");
+  }
 
-export function createBot() {
-  if (!config.telegram.botToken) {
-    console.log(
-      'BOT_TOKEN নেই — Telegram bot এখনো চালু করা হবে না।'
-    );
+  return database.ref("users");
+}
 
+export async function getUser(userId) {
+  const snapshot = await getUsersRef()
+    .child(String(userId))
+    .get();
+
+  if (!snapshot.exists()) {
     return null;
   }
 
-  bot = new Telegraf(config.telegram.botToken);
-
-  bot.start(async (ctx) => {
-    try {
-      const user = await createUser(ctx.from);
-
-      await ctx.reply(
-        `👋 স্বাগতম ${user.firstName || 'বন্ধু'}!\n\n` +
-        `🪙 তোমার Balance: ${user.coins}\n` +
-        `⚡ Energy: ${user.energy}/${user.maxEnergy}\n` +
-        `⭐ Level: ${user.level}\n\n` +
-        `🚀 Mini App থেকে Tap-to-Earn শুরু করো।`
-      );
-    } catch (error) {
-      console.error('Start command error:', error.message);
-
-      await ctx.reply(
-        '❌ এখন রেজিস্ট্রেশন করা যাচ্ছে না। পরে আবার চেষ্টা করো।'
-      );
-    }
-  });
-
-  bot.command('balance', async (ctx) => {
-    try {
-      const user = await getUser(String(ctx.from.id));
-
-      if (!user) {
-        return ctx.reply(
-          'আগে /start দিয়ে রেজিস্ট্রেশন করো।'
-        );
-      }
-
-      await ctx.reply(
-        `🪙 Balance: ${user.coins || 0}\n` +
-        `⚡ Energy: ${user.energy || 0}/${user.maxEnergy || 1000}\n` +
-        `⭐ Level: ${user.level || 1}\n` +
-        `✨ XP: ${user.xp || 0}`
-      );
-    } catch (error) {
-      console.error('Balance error:', error.message);
-
-      await ctx.reply(
-        '❌ Balance দেখাতে সমস্যা হয়েছে।'
-      );
-    }
-  });
-
-  bot.command('id', async (ctx) => {
-    await ctx.reply(
-      `🆔 তোমার Telegram ID:\n\n${ctx.from.id}`
-    );
-  });
-
-  bot.command('help', async (ctx) => {
-    await ctx.reply(
-      `📚 Available Commands\n\n` +
-      `/start - বট শুরু\n` +
-      `/balance - Balance দেখুন\n` +
-      `/id - Telegram ID দেখুন\n` +
-      `/help - Help`
-    );
-  });
-
-  bot.catch((error) => {
-    console.error(
-      'Telegram bot error:',
-      error.message
-    );
-  });
-
-  return bot;
+  return snapshot.val();
 }
 
-export function getBot() {
-  return bot;
+export async function createUser(userId, data = {}) {
+  const usersRef = getUsersRef();
+  const userRef = usersRef.child(String(userId));
+  const snapshot = await userRef.get();
+
+  if (snapshot.exists()) {
+    return snapshot.val();
+  }
+
+  const user = {
+    id: String(userId),
+    username: data.username || "",
+    firstName: data.firstName || "",
+    coins: 0,
+    level: 1,
+    xp: 0,
+    energy: 1000,
+    maxEnergy: 1000,
+    referrals: 0,
+    createdAt: Date.now(),
+    updatedAt: Date.now()
+  };
+
+  await userRef.set(user);
+
+  return user;
+}
+
+export async function updateUser(userId, updates = {}) {
+  const userRef = getUsersRef().child(String(userId));
+  const snapshot = await userRef.get();
+
+  if (!snapshot.exists()) {
+    throw new Error("User not found");
+  }
+
+  const safeUpdates = {
+    ...updates,
+    updatedAt: Date.now()
+  };
+
+  delete safeUpdates.id;
+  delete safeUpdates.coins;
+  delete safeUpdates.createdAt;
+
+  await userRef.update(safeUpdates);
+
+  const updatedSnapshot = await userRef.get();
+
+  return updatedSnapshot.val();
+}
+
+export async function getUserBalance(userId) {
+  const user = await getUser(userId);
+
+  if (!user) {
+    return 0;
+  }
+
+  return Number(user.coins) || 0;
 }

@@ -1,7 +1,7 @@
 {
-  "name": "tap-rewards-miniapp",
-  "private": true,
+  "name": "tap-rewards-frontend",
   "version": "1.0.0",
+  "private": true,
   "type": "module",
   "scripts": {
     "dev": "vite",
@@ -9,11 +9,9 @@
     "preview": "vite preview"
   },
   "dependencies": {
-    "react": "^19.1.1",
-    "react-dom": "^19.1.1"
+    "firebase": "^11.0.2"
   },
   "devDependencies": {
-    "@vitejs/plugin-react": "^5.0.4",
-    "vite": "^7.1.7"
+    "vite": "^6.0.5"
   }
 }
