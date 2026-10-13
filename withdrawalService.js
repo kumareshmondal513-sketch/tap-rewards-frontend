@@ -225,4 +225,4 @@ export async function getAllWithdrawals() {
   }
 
   const snapshot =
-    await db.ref('withdrawals').
+withdrawalService.js
