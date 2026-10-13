@@ -1,228 +1,238 @@
-import { db } from './firebase.js';
+import { database } from "../firebase.js";
 
-
-// ===============================
-// DEFAULT WITHDRAWAL SETTINGS
-// ===============================
 const DEFAULT_MIN_WITHDRAWAL = 5000000;
 
-
-// ===============================
-// GET WITHDRAWAL SETTINGS
-// ===============================
-export async function getWithdrawalSettings() {
-  if (!db) {
-    throw new Error('Firebase is not configured.');
+function getDatabase() {
+  if (!database) {
+    throw new Error("Firebase database is not configured.");
   }
 
-  const snapshot = await db
-    .ref('settings/withdrawal')
-    .once('value');
+  return database;
+}
+
+function validateUserId(userId) {
+  if (
+    typeof userId !== "string" ||
+    !userId.trim() ||
+    userId.includes("/") ||
+    userId.includes(".") ||
+    userId.includes("#") ||
+    userId.includes("$") ||
+    userId.includes("[") ||
+    userId.includes("]")
+  ) {
+    throw new Error("Invalid user ID.");
+  }
+}
+
+function validateAmount(amount) {
+  const value = Number(amount);
+
+  if (!Number.isSafeInteger(value) || value <= 0) {
+    throw new Error("Withdrawal amount must be a positive integer.");
+  }
+
+  return value;
+}
+
+export async function createWithdrawal({
+  userId,
+  amount,
+  method,
+  accountNumber
+}) {
+  validateUserId(userId);
+
+  const value = validateAmount(amount);
+  const normalizedMethod = String(method || "").trim().toLowerCase();
+  const normalizedAccount = String(accountNumber || "").trim();
+
+  const allowedMethods = [
+    "bkash",
+    "nagad",
+    "rocket"
+  ];
+
+  if (!allowedMethods.includes(normalizedMethod)) {
+    throw new Error("Unsupported withdrawal method.");
+  }
+
+  if (
+    normalizedAccount.length < 5 ||
+    normalizedAccount.length > 40
+  ) {
+    throw new Error("Invalid withdrawal account.");
+  }
+
+  const db = getDatabase();
+  const settingsRef = db.ref("settings");
+  const userRef = db.ref(`users/${userId}`);
+  const requestsRef = db.ref("withdrawals");
+
+  const [settingsSnapshot, userSnapshot] = await Promise.all([
+    settingsRef.get(),
+    userRef.get()
+  ]);
+
+  const settings = settingsSnapshot.val() || {};
+  const user = userSnapshot.val();
+
+  if (settings.maintenanceMode === true) {
+    throw new Error("Withdrawals are temporarily unavailable.");
+  }
+
+  if (settings.withdrawalsEnabled !== true) {
+    throw new Error("Withdrawals are currently disabled.");
+  }
+
+  const minimum = Number(
+    settings.minWithdrawal ?? DEFAULT_MIN_WITHDRAWAL
+  );
+
+  if (value < minimum) {
+    throw new Error(`Minimum withdrawal is ${minimum} coins.`);
+  }
+
+  if (!user) {
+    throw new Error("User account was not found.");
+  }
+
+  if (user.suspended === true || user.banned === true) {
+    throw new Error("This account cannot withdraw.");
+  }
+
+  if (user.verified !== true) {
+    throw new Error("Account verification is required.");
+  }
+
+  const balance = Number(user.balance ?? user.coins ?? 0);
+
+  if (!Number.isSafeInteger(balance) || balance < value) {
+    throw new Error("Insufficient balance.");
+  }
+
+  const requestRef = requestsRef.push();
+  const requestId = requestRef.key;
+
+  if (!requestId) {
+    throw new Error("Could not create withdrawal request.");
+  }
+
+  const transactionResult = await userRef.transaction((currentUser) => {
+    if (!currentUser) return;
+
+    if (
+      currentUser.suspended === true ||
+      currentUser.banned === true ||
+      currentUser.verified !== true
+    ) {
+      return;
+    }
+
+    const currentBalance = Number(
+      currentUser.balance ?? currentUser.coins ?? 0
+    );
+
+    if (
+      !Number.isSafeInteger(currentBalance) ||
+      currentBalance < value
+    ) {
+      return;
+    }
+
+    if (currentUser.balance !== undefined) {
+      currentUser.balance = currentBalance - value;
+    } else {
+      currentUser.coins = currentBalance - value;
+    }
+
+    return currentUser;
+  });
+
+  if (!transactionResult.committed) {
+    throw new Error(
+      "Withdrawal could not be processed. Check your balance and account status."
+    );
+  }
+
+  const request = {
+    id: requestId,
+    userId,
+    amount: value,
+    method: normalizedMethod,
+    accountNumber: normalizedAccount,
+    status: "pending",
+    createdAt: Date.now(),
+    updatedAt: Date.now()
+  };
+
+  try {
+    await requestRef.set(request);
+  } catch (error) {
+    // Restore the balance if saving the request fails.
+    await userRef.transaction((currentUser) => {
+      if (!currentUser) return;
+
+      if (currentUser.balance !== undefined) {
+        currentUser.balance = Number(currentUser.balance || 0) + value;
+      } else {
+        currentUser.coins = Number(currentUser.coins || 0) + value;
+      }
+
+      return currentUser;
+    });
+
+    throw new Error("Could not save withdrawal request.");
+  }
+
+  return {
+    success: true,
+    message: "Withdrawal request submitted for review.",
+    withdrawal: request
+  };
+}
+
+export async function getUserWithdrawals(userId) {
+  validateUserId(userId);
+
+  const snapshot = await getDatabase()
+    .ref("withdrawals")
+    .orderByChild("userId")
+    .equalTo(userId)
+    .get();
+
+  const requests = [];
+
+  snapshot.forEach((child) => {
+    requests.push(child.val());
+  });
+
+  return requests.sort(
+    (a, b) => Number(b.createdAt || 0) - Number(a.createdAt || 0)
+  );
+}
+
+export async function getWithdrawalById(requestId) {
+  if (
+    typeof requestId !== "string" ||
+    !requestId.trim() ||
+    requestId.includes("/") ||
+    requestId.includes(".") ||
+    requestId.includes("#") ||
+    requestId.includes("$") ||
+    requestId.includes("[") ||
+    requestId.includes("]")
+  ) {
+    throw new Error("Invalid withdrawal request ID.");
+  }
+
+  const snapshot = await getDatabase()
+    .ref(`withdrawals/${requestId}`)
+    .get();
 
   if (!snapshot.exists()) {
-    return {
-      enabled: false,
-      minimumCoins: DEFAULT_MIN_WITHDRAWAL,
-      message:
-        'Withdrawal is currently unavailable.'
-    };
+    return null;
   }
 
   return snapshot.val();
 }
-
-
-// ===============================
-// UPDATE WITHDRAWAL SETTINGS
-// ===============================
-export async function updateWithdrawalSettings(
-  settings
-) {
-  if (!db) {
-    throw new Error('Firebase is not configured.');
-  }
-
-  const current =
-    await getWithdrawalSettings();
-
-  const updated = {
-    ...current,
-    ...settings,
-    updatedAt: Date.now()
-  };
-
-  await db
-    .ref('settings/withdrawal')
-    .set(updated);
-
-  return updated;
-}
-
-
-// ===============================
-// CREATE WITHDRAWAL REQUEST
-// ===============================
-export async function createWithdrawal(
-  telegramId,
-  withdrawalData
-) {
-  if (!db) {
-    throw new Error('Firebase is not configured.');
-  }
-
-  const userRef =
-    db.ref(`users/${telegramId}`);
-
-  const userSnapshot =
-    await userRef.once('value');
-
-  if (!userSnapshot.exists()) {
-    throw new Error('User not found.');
-  }
-
-  const user = userSnapshot.val();
-
-  const settings =
-    await getWithdrawalSettings();
-
-  if (settings.enabled !== true) {
-    throw new Error(
-      settings.message ||
-      'Withdrawal is currently unavailable.'
-    );
-  }
-
-  const amount =
-    Number(withdrawalData.amount || 0);
-
-  const minimumCoins =
-    Number(
-      settings.minimumCoins ||
-      DEFAULT_MIN_WITHDRAWAL
-    );
-
-  if (!Number.isFinite(amount) || amount <= 0) {
-    throw new Error(
-      'Invalid withdrawal amount.'
-    );
-  }
-
-  if (amount < minimumCoins) {
-    throw new Error(
-      `Minimum withdrawal is ${minimumCoins} coins.`
-    );
-  }
-
-  const currentCoins =
-    Number(user.coins || 0);
-
-  if (currentCoins < amount) {
-    throw new Error(
-      'Insufficient coin balance.'
-    );
-  }
-
-  const method =
-    withdrawalData.method || '';
-
-  const accountNumber =
-    withdrawalData.accountNumber || '';
-
-  if (!method) {
-    throw new Error(
-      'Withdrawal method is required.'
-    );
-  }
-
-  if (!accountNumber) {
-    throw new Error(
-      'Account number is required.'
-    );
-  }
-
-  const withdrawalRef =
-    db.ref('withdrawals').push();
-
-  const withdrawalId =
-    withdrawalRef.key;
-
-  const now = Date.now();
-
-  const withdrawal = {
-    id: withdrawalId,
-    telegramId: String(telegramId),
-    amount,
-    method,
-    accountNumber,
-    accountName:
-      withdrawalData.accountName || '',
-    status: 'pending',
-    createdAt: now,
-    updatedAt: now
-  };
-
-  // Reserve/deduct coins
-  await userRef.update({
-    coins: currentCoins - amount,
-    updatedAt: now
-  });
-
-  await withdrawalRef.set(
-    withdrawal
-  );
-
-  await db.ref(
-    `transactions/${telegramId}/${withdrawalId}`
-  ).set({
-    type: 'withdrawal',
-    amount: -amount,
-    status: 'pending',
-    createdAt: now
-  });
-
-  return withdrawal;
-}
-
-
-// ===============================
-// GET USER WITHDRAWALS
-// ===============================
-export async function getUserWithdrawals(
-  telegramId
-) {
-  if (!db) {
-    throw new Error('Firebase is not configured.');
-  }
-
-  const snapshot =
-    await db
-      .ref('withdrawals')
-      .orderByChild('telegramId')
-      .equalTo(String(telegramId))
-      .once('value');
-
-  if (!snapshot.exists()) {
-    return [];
-  }
-
-  const data = snapshot.val();
-
-  return Object.entries(data).map(
-    ([id, withdrawal]) => ({
-      id,
-      ...withdrawal
-    })
-  );
-}
-
-
-// ===============================
-// GET ALL WITHDRAWALS
-// ===============================
-export async function getAllWithdrawals() {
-  if (!db) {
-    throw new Error('Firebase is not configured.');
-  }
-
-  const snapshot =
-withdrawalService.js
