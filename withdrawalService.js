@@ -1,4 +1,4 @@
-import { database } from'../firbaseClient.js';,
+import { database } from'../firbaseClient.js';
 
 const DEFAULT_MIN_WITHDRAWAL = 5000000;
 
