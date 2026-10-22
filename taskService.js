@@ -1,4 +1,4 @@
-import { db } from './firebase.js';
+import {database as db} from './firebase.js';
 
 export async function getTasks() {
   if (!db) {
