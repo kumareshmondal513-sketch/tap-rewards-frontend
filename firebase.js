@@ -45,4 +45,4 @@ if (
   console.log("Firebase credentials not configured");
 }
 
-export { database };
+export const db=database;
