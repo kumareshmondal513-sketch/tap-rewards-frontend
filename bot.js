@@ -1,4 +1,4 @@
-import database from "./firebase.js";
+import { database as db} from "./firebase.js";
 
 function getUsersRef() {
   if (!database) {
