@@ -1,15 +1,15 @@
-import { database } from "./firebase.js";
+import { db } from "./firebase.js";
 
 const DEFAULT_MAX_ENERGY = 1000;
 const REGEN_INTERVAL_MS = 5000;
 const ENERGY_PER_INTERVAL = 1;
 
 function getUsersRef() {
-  if (!database) {
+  if (!db) {
     throw new Error("Firebase database is not configured");
   }
 
-  return database.ref("users");
+  return db.ref("users");
 }
 
 function calculateEnergy(user) {
