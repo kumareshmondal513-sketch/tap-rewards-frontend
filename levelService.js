@@ -3,7 +3,7 @@ import { db } from "./firebase.js";
 const MAX_LEVEL = 100;
 
 function getUsersRef() {
-  if (!database) {
+  if (!db) {
     throw new Error("Firebase database is not configured");
   }
 
