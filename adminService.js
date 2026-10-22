@@ -1,11 +1,11 @@
-import { database } from "./firebase.js";
+import { db } from "./firebase.js";
 
 function getAdminsRef() {
   if (!database) {
     throw new Error("Firebase database is not configured");
   }
 
-  return database.ref("admins");
+  return db.ref("admins");
 }
 
 export async function getAdmin(adminId) {
