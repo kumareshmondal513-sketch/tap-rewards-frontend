@@ -1,11 +1,11 @@
 import { db } from "./firebase.js";
 
 function getUsersRef() {
-  if (!database) {
+  if (!db) {
     throw new Error("Firebase database is not configured");
   }
 
-  return database.ref("users");
+  return db.ref("users");
 }
 
 export async function getUser(userId) {
