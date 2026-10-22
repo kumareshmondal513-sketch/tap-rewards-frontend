@@ -1,4 +1,4 @@
-import { database } from "./firebase.js";
+import { db } from "./firebase.js";
 
 const MAX_LEVEL = 100;
 
