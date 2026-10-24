@@ -236,3 +236,4 @@ export async function getWithdrawalById(requestId) {
 
   return snapshot.val();
 }
+getWithdrawalSettings
