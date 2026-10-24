@@ -1,4 +1,4 @@
-import database from './firebaseClient.js'
+import { clientDatabase } from './firebaseClient.js';
 
 const DEFAULT_MIN_WITHDRAWAL = 5000000;
 
