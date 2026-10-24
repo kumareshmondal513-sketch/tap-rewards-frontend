@@ -237,3 +237,4 @@ export async function getWithdrawalById(requestId) {
   return snapshot.val();
 }
 export async function getWithdrawalSettings() { const db = getDatabase(); const snapshot = await db.ref('settings').get(); return snapshot.val(); }
+getWithdrawalSettings
