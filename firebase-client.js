@@ -58,3 +58,4 @@ export async function readPublicSetting(path) {
   const snapshot = await get(ref(database, path));
   return snapshot.exists() ? snapshot.val() : null;
 }
+export default database;
