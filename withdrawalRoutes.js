@@ -4,7 +4,7 @@ import {
   getWithdrawalSettings,
   updateWithdrawalSettings,
   createWithdrawal,
-  getWithdrawals,
+  getAllWithdrawals,
   updateWithdrawalStatus
 } from './withdrawalService.js';
 
