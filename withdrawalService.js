@@ -192,7 +192,7 @@ export async function createWithdrawal({
   };
 }
 
-export async function getUserWithdrawals(userId) {
+export async function getAllWithdrawals(userId) {
   validateUserId(userId);
 
   const snapshot = await getDatabase()
