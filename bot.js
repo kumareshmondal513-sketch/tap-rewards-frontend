@@ -1,83 +1,40 @@
-import { db } from "./firebase.js";
+import TelegramBot from 'node-telegram-bot-api';
+import config from './config.js';
 
-function getUsersRef() {
-  if (!db) {
-    throw new Error("Firebase database is not configured");
-  }
+let bot = null;
 
-  return db.ref("users");
+if (config.telegram.botToken) {
+  bot = new TelegramBot(config.telegram.botToken, {
+    polling: true
+  });
+
+  bot.onText(/^\/start(?:\s+(.+))?$/, async (msg, match) => {
+    const chatId = msg.chat.id;
+    const startParameter = match?.[1] || '';
+
+    await bot.sendMessage(
+      chatId,
+      [
+        '🎉 Welcome to TapNova!',
+        '',
+        '🚀 Telegram Tap-to-Earn Mini App',
+        '',
+        `Referral parameter: ${startParameter || 'none'}`,
+        '',
+        'Mini App will be connected here later.'
+      ].join('\n')
+    );
+  });
+
+  bot.on('polling_error', (error) => {
+    console.error('Telegram polling error:', error.message);
+  });
+
+  console.log('Telegram bot initialized.');
+} else {
+  console.warn('TELEGRAM_BOT_TOKEN is not configured.');
 }
 
-export async function getUser(userId) {
-  const snapshot = await getUsersRef()
-    .child(String(userId))
-    .get();
+export { bot };
 
-  if (!snapshot.exists()) {
-    return null;
-  }
-
-  return snapshot.val();
-}
-
-export async function createUser(userId, data = {}) {
-  const usersRef = getUsersRef();
-  const userRef = usersRef.child(String(userId));
-  const snapshot = await userRef.get();
-
-  if (snapshot.exists()) {
-    return snapshot.val();
-  }
-
-  const user = {
-    id: String(userId),
-    username: data.username || "",
-    firstName: data.firstName || "",
-    coins: 0,
-    level: 1,
-    xp: 0,
-    energy: 1000,
-    maxEnergy: 1000,
-    referrals: 0,
-    createdAt: Date.now(),
-    updatedAt: Date.now()
-  };
-
-  await userRef.set(user);
-
-  return user;
-}
-
-export async function updateUser(userId, updates = {}) {
-  const userRef = getUsersRef().child(String(userId));
-  const snapshot = await userRef.get();
-
-  if (!snapshot.exists()) {
-    throw new Error("User not found");
-  }
-
-  const safeUpdates = {
-    ...updates,
-    updatedAt: Date.now()
-  };
-
-  delete safeUpdates.id;
-  delete safeUpdates.coins;
-  delete safeUpdates.createdAt;
-
-  await userRef.update(safeUpdates);
-
-  const updatedSnapshot = await userRef.get();
-
-  return updatedSnapshot.val();
-}
-
-export async function getUserBalance(userId) {
-  const user = await getUser(userId);
-
-  if (!user) {
-    return 0;
-  }
-
-  return Number(user.coins) || 0;
-}
+export default bot;

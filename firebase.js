@@ -1,48 +1,40 @@
-import {
-  initializeApp,
-  cert,
-  getApps
-} from "firebase-admin/app";
+import admin from 'firebase-admin';
+import config from './config.js';
 
-import {
-  getDatabase
-} from "firebase-admin/database";
+let db = null;
 
-const projectId = process.env.FIREBASE_PROJECT_ID;
-const clientEmail = process.env.FIREBASE_CLIENT_EMAIL;
-const privateKey = process.env.FIREBASE_PRIVATE_KEY;
-const databaseURL = process.env.FIREBASE_DATABASE_URL;
-
-let database = null;
-
-if (
-  projectId &&
-  clientEmail &&
-  privateKey &&
-  databaseURL
-) {
-  try {
-    if (getApps().length === 0) {
-      initializeApp({
-        credential: cert({
-          projectId,
-          clientEmail,
-          privateKey: privateKey.replace(/\\n/g, "\n")
-        }),
-        databaseURL
-      });
-    }
-
-    database = getDatabase();
-    console.log("Firebase connected");
-  } catch (error) {
-    console.error(
-      "Firebase connection failed:",
-      error.message
-    );
+function initializeFirebase() {
+  if (
+    !config.firebase.projectId ||
+    !config.firebase.clientEmail ||
+    !config.firebase.privateKey ||
+    !config.firebase.databaseURL
+  ) {
+    console.warn('Firebase configuration is incomplete.');
+    return null;
   }
-} else {
-  console.log("Firebase credentials not configured");
+
+  if (!admin.apps.length) {
+    admin.initializeApp({
+      credential: admin.credential.cert({
+        projectId: config.firebase.projectId,
+        clientEmail: config.firebase.clientEmail,
+        privateKey: config.firebase.privateKey
+      }),
+      databaseURL: config.firebase.databaseURL
+    });
+  }
+
+  return admin.database();
 }
 
-export const db=database;
+try {
+  db = initializeFirebase();
+} catch (error) {
+  console.error('Firebase initialization failed:', error.message);
+  db = null;
+}
+
+export { admin, db };
+
+export default db;

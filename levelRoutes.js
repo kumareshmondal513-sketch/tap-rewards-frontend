@@ -1,68 +1,53 @@
-import express from "express";
+import express from 'express';
 import {
-  getUserLevel,
-  addXp
-} from "./levelService.js";
+  addXp,
+  getLevelInfo
+} from '../services/levelService.js';
 
 const router = express.Router();
 
-router.get("/:userId", async (req, res) => {
+router.get('/:telegramId', async (req, res) => {
   try {
-    const { userId } = req.params;
-
-    if (!/^\d+$/.test(userId)) {
-      return res.status(400).json({
-        success: false,
-        message: "Invalid user ID"
-      });
-    }
-
-    const levelInfo = await getUserLevel(userId);
+    const info = await getLevelInfo(req.params.telegramId);
 
     return res.json({
       success: true,
-      data: levelInfo
+      ...info
     });
   } catch (error) {
-    return res.status(
-      error.message === "User not found" ? 404 : 500
-    ).json({
+    console.error('Get level error:', error);
+
+    return res.status(400).json({
       success: false,
-      message: error.message === "User not found"
-        ? error.message
-        : "Internal server error"
+      message: error.message || 'Failed to get level.'
     });
   }
 });
 
-router.post("/:userId/xp", async (req, res) => {
+router.post('/xp', async (req, res) => {
   try {
-    const { userId } = req.params;
+    const { telegramId, amount } = req.body;
 
-    if (!/^\d+$/.test(userId)) {
+    if (!telegramId || amount === undefined) {
       return res.status(400).json({
         success: false,
-        message: "Invalid user ID"
+        message: 'telegramId and amount are required.'
       });
     }
 
-    const result = await addXp(userId, req.body?.amount);
+    const user = await addXp(telegramId, amount);
 
     return res.json({
       success: true,
-      data: result
+      level: user.level,
+      xp: user.xp
     });
   } catch (error) {
-    const invalidAmount = error.message === "Invalid XP amount";
-    const userMissing = error.message === "User not found";
+    console.error('Add XP error:', error);
 
-    return res.status(
-      invalidAmount ? 400 : userMissing ? 404 : 500
-    ).json({
+    return res.status(400).json({
       success: false,
-      message: invalidAmount || userMissing
-        ? error.message
-        : "Internal server error"
+      message: error.message || 'Failed to add XP.'
     });
   }
 });

@@ -1,180 +1,76 @@
 import express from 'express';
 
 import {
-  getSettings,
-  getSettingGroup,
-  updateSettings,
-  updateSettingGroup,
-  setMaintenanceMode,
-  isMaintenanceMode
-} from './adminSettingsService.js';
+  getAdminSettings,
+  updateAdminSettings
+} from '../services/adminSettingsService.js';
+
+import { requireMainAdmin } from '../middleware/adminRoleMiddleware.js';
 
 const router = express.Router();
 
+router.use(requireMainAdmin());
 
-// ===============================
-// GET ALL SETTINGS
-// ===============================
-router.get('/', async (req, res) => {
+// সব অ্যাডমিন সেটিংস দেখুন
+router.get('/', async (req, res, next) => {
   try {
-    const settings =
-      await getSettings();
+    const settings = await getAdminSettings();
 
     res.json({
       success: true,
       settings
     });
   } catch (error) {
-    console.error(
-      'Get settings error:',
-      error.message
-    );
-
-    res.status(400).json({
-      success: false,
-      message: error.message
-    });
+    next(error);
   }
 });
 
-
-// ===============================
-// GET ONE SETTING GROUP
-// ===============================
-router.get(
-  '/group/:group',
-  async (req, res) => {
-    try {
-      const { group } =
-        req.params;
-
-      const settings =
-        await getSettingGroup(group);
-
-      res.json({
-        success: true,
-        settings
-      });
-    } catch (error) {
-      res.status(400).json({
-        success: false,
-        message: error.message
-      });
-    }
-  }
-);
-
-
-// ===============================
-// UPDATE ALL SETTINGS
-// ===============================
-router.put('/', async (req, res) => {
+// অ্যাডমিন সেটিংস পরিবর্তন করুন
+router.patch('/', async (req, res, next) => {
   try {
-    const settings =
-      await updateSettings(
-        req.body
-      );
+    const adminTelegramId =
+      req.user?.telegramId ??
+      req.admin?.telegramId ??
+      req.telegramId;
 
-    res.json({
-      success: true,
-      settings
+    if (!adminTelegramId) {
+      return res.status(401).json({
+        success: false,
+        message: 'Admin identity is required.'
+      });
+    }
+
+    const result = await updateAdminSettings({
+      settings: req.body,
+      adminTelegramId
     });
+
+    res.json(result);
   } catch (error) {
-    console.error(
-      'Update settings error:',
-      error.message
-    );
+    const clientErrors = [
+      'Admin Telegram ID is required.',
+      'Valid settings object is required.',
+      'No valid settings were provided.'
+    ];
 
-    res.status(400).json({
-      success: false,
-      message: error.message
-    });
+    if (
+      clientErrors.includes(error.message) ||
+      error.message.startsWith('Setting cannot be changed:') ||
+      error.message.endsWith('must be true or false.') ||
+      error.message === 'Language must be bn or en.' ||
+      error.message ===
+        'Minimum withdrawal coins must be a non-negative integer.' ||
+      error.message ===
+        'Task ad countdown must be between 0 and 60 seconds.'
+    ) {
+      return res.status(400).json({
+        success: false,
+        message: error.message
+      });
+    }
+
+    next(error);
   }
 });
-
-
-// ===============================
-// UPDATE ONE SETTING GROUP
-// ===============================
-router.put(
-  '/group/:group',
-  async (req, res) => {
-    try {
-      const { group } =
-        req.params;
-
-      const settings =
-        await updateSettingGroup(
-          group,
-          req.body
-        );
-
-      res.json({
-        success: true,
-        settings
-      });
-    } catch (error) {
-      res.status(400).json({
-        success: false,
-        message: error.message
-      });
-    }
-  }
-);
-
-
-// ===============================
-// SET MAINTENANCE MODE
-// ===============================
-router.post(
-  '/maintenance',
-  async (req, res) => {
-    try {
-      const { enabled } =
-        req.body;
-
-      const settings =
-        await setMaintenanceMode(
-          enabled
-        );
-
-      res.json({
-        success: true,
-        settings
-      });
-    } catch (error) {
-      res.status(400).json({
-        success: false,
-        message: error.message
-      });
-    }
-  }
-);
-
-
-// ===============================
-// CHECK MAINTENANCE MODE
-// ===============================
-router.get(
-  '/maintenance/status',
-  async (req, res) => {
-    try {
-      const enabled =
-        await isMaintenanceMode();
-
-      res.json({
-        success: true,
-        maintenanceMode:
-          enabled
-      });
-    } catch (error) {
-      res.status(400).json({
-        success: false,
-        message: error.message
-      });
-    }
-  }
-);
-
 
 export default router;

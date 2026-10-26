@@ -1,91 +1,113 @@
 import express from 'express';
 
 import {
-  notifyActiveAdmins,
-  notifyWithdrawalRequest,
-  notifyVerificationRequest
-} from './adminNotificationService.js';
+  createAdminNotification,
+  getAdminNotifications,
+  deleteAdminNotification
+} from '../services/adminNotificationService.js';
+
+import {
+  requireMainAdmin
+} from '../middleware/adminRoleMiddleware.js';
 
 const router = express.Router();
 
-// সক্রিয় অ্যাডমিনদের নোটিফিকেশন পাঠানো
-router.post('/notify', async (req, res) => {
+router.use(requireMainAdmin());
+
+router.get('/', async (req, res, next) => {
   try {
-    const { title, message } = req.body;
+    const notifications =
+      await getAdminNotifications(
+        req.query.limit
+      );
 
-    const result = await notifyActiveAdmins({
-      title,
-      message
+    return res.status(200).json({
+      success: true,
+      count: notifications.length,
+      notifications
     });
-
-    return res.json(result);
   } catch (error) {
-    return res.status(400).json({
-      success: false,
-      message: error.message
-    });
+    return next(error);
   }
 });
 
-// উইথড্রয়াল আবেদনের নোটিফিকেশন
-router.post('/withdrawal', async (req, res) => {
+router.post('/', async (req, res, next) => {
   try {
+    const createdBy =
+      req.user?.telegramId ??
+      req.admin?.telegramId ??
+      req.telegramId;
+
+    if (!createdBy) {
+      return res.status(401).json({
+        success: false,
+        message:
+          'Admin identity is required.'
+      });
+    }
+
     const {
-      userId,
-      amount,
-      withdrawalId
-    } = req.body;
+      title,
+      message,
+      type = 'info'
+    } = req.body || {};
+
+    const result =
+      await createAdminNotification({
+        title,
+        message,
+        type,
+        createdBy
+      });
+
+    return res.status(201).json(result);
+  } catch (error) {
+    const clientErrors = [
+      'Admin Telegram ID is required.',
+      'Notification title is required.',
+      'Notification message is required.',
+      'Invalid notification type.'
+    ];
 
     if (
-      !userId ||
-      amount === undefined ||
-      !withdrawalId
+      clientErrors.includes(error.message)
     ) {
       return res.status(400).json({
         success: false,
-        message: 'সব তথ্য দিতে হবে'
+        message: error.message
       });
     }
 
-    const result = await notifyWithdrawalRequest({
-      userId,
-      amount,
-      withdrawalId
-    });
-
-    return res.json(result);
-  } catch (error) {
-    return res.status(500).json({
-      success: false,
-      message: 'নোটিফিকেশন পাঠানো যায়নি'
-    });
+    return next(error);
   }
 });
 
-// ভেরিফিকেশন আবেদনের নোটিফিকেশন
-router.post('/verification', async (req, res) => {
-  try {
-    const { userId, fullName } = req.body;
+router.delete(
+  '/:notificationId',
+  async (req, res, next) => {
+    try {
+      const result =
+        await deleteAdminNotification(
+          req.params.notificationId
+        );
 
-    if (!userId || !fullName) {
-      return res.status(400).json({
-        success: false,
-        message: 'User ID এবং নাম দিতে হবে'
-      });
+      return res.status(200).json(result);
+    } catch (error) {
+      if (
+        error.message ===
+          'Notification ID is required.' ||
+        error.message ===
+          'Notification not found.'
+      ) {
+        return res.status(400).json({
+          success: false,
+          message: error.message
+        });
+      }
+
+      return next(error);
     }
-
-    const result = await notifyVerificationRequest({
-      userId,
-      fullName
-    });
-
-    return res.json(result);
-  } catch (error) {
-    return res.status(500).json({
-      success: false,
-      message: 'নোটিফিকেশন পাঠানো যায়নি'
-    });
   }
-});
+);
 
 export default router;

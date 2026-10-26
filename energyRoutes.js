@@ -1,70 +1,63 @@
-import express from "express";
+import express from 'express';
 import {
-  getEnergy,
-  refillEnergy
-} from "./energyService.js";
+  regenerateEnergy,
+  setEnergy
+} from '../services/energyService.js';
 
 const router = express.Router();
 
-router.get("/:userId", async (req, res) => {
+router.post('/regenerate', async (req, res) => {
   try {
-    const { userId } = req.params;
+    const { telegramId } = req.body;
 
-    if (!/^\d+$/.test(userId)) {
+    if (!telegramId) {
       return res.status(400).json({
         success: false,
-        message: "Invalid user ID"
+        message: 'telegramId is required.'
       });
     }
 
-    const energy = await getEnergy(userId);
+    const user = await regenerateEnergy(telegramId);
 
     return res.json({
       success: true,
-      data: energy
+      energy: user.energy,
+      maxEnergy: user.maxEnergy
     });
   } catch (error) {
-    const status = error.message === "User not found"
-      ? 404
-      : 500;
+    console.error('Energy regeneration error:', error);
 
-    return res.status(status).json({
+    return res.status(400).json({
       success: false,
-      message: status === 500
-        ? "Internal server error"
-        : error.message
+      message: error.message || 'Energy update failed.'
     });
   }
 });
 
-router.post("/:userId/refill", async (req, res) => {
+router.post('/set', async (req, res) => {
   try {
-    const { userId } = req.params;
+    const { telegramId, energy } = req.body;
 
-    if (!/^\d+$/.test(userId)) {
+    if (!telegramId || energy === undefined) {
       return res.status(400).json({
         success: false,
-        message: "Invalid user ID"
+        message: 'telegramId and energy are required.'
       });
     }
 
-    const result = await refillEnergy(userId);
+    const user = await setEnergy(telegramId, energy);
 
     return res.json({
       success: true,
-      message: "Energy refilled",
-      data: result
+      energy: user.energy,
+      maxEnergy: user.maxEnergy
     });
   } catch (error) {
-    const status = error.message === "User not found"
-      ? 404
-      : 500;
+    console.error('Set energy error:', error);
 
-    return res.status(status).json({
+    return res.status(400).json({
       success: false,
-      message: status === 500
-        ? "Internal server error"
-        : error.message
+      message: error.message || 'Energy update failed.'
     });
   }
 });

@@ -1,22 +1,24 @@
-import dotenv from "dotenv";
-
-dotenv.config();
+import 'dotenv/config';
 
 export const config = {
-  botToken: process.env.BOT_TOKEN || "",
-  port: Number(process.env.PORT) || 3000,
-  nodeEnv: process.env.NODE_ENV || "development",
+  port: Number(process.env.PORT || 3000),
 
-  firebase: {
-    projectId: process.env.FIREBASE_PROJECT_ID || "",
-    databaseURL: process.env.FIREBASE_DATABASE_URL || "",
-    clientEmail: process.env.FIREBASE_CLIENT_EMAIL || "",
-    privateKey: (process.env.FIREBASE_PRIVATE_KEY || "")
-      .replace(/\\n/g, "\n")
+  telegram: {
+    botToken: process.env.TELEGRAM_BOT_TOKEN || ''
   },
 
-  adminId: process.env.ADMIN_ID || "",
-  webAppUrl: process.env.WEBAPP_URL || ""
+  firebase: {
+    projectId: process.env.FIREBASE_PROJECT_ID || '',
+    clientEmail: process.env.FIREBASE_CLIENT_EMAIL || '',
+    privateKey: (process.env.FIREBASE_PRIVATE_KEY || '').replace(/\\n/g, '\n'),
+    databaseURL: process.env.FIREBASE_DATABASE_URL || ''
+  },
+
+  withdrawal: {
+    minimumCoins: Number(
+      process.env.MIN_WITHDRAWAL_COINS || 5000000
+    )
+  }
 };
 
 export default config;

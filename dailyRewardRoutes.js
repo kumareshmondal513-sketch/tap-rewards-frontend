@@ -1,73 +1,61 @@
-import express from "express";
+import express from 'express';
 import {
   claimDailyReward,
   getDailyRewardStatus
-} from "./dailyRewardService.js";
+} from '../services/dailyRewardService.js';
 
 const router = express.Router();
 
-// Check daily reward status
-router.get("/:userId", async (req, res) => {
+router.get('/:telegramId', async (req, res, next) => {
   try {
-    const { userId } = req.params;
+    const status = await getDailyRewardStatus(
+      req.params.telegramId
+    );
 
-    if (!/^\d+$/.test(userId)) {
-      return res.status(400).json({
-        success: false,
-        message: "Invalid user ID"
-      });
-    }
-
-    const status = await getDailyRewardStatus(userId);
-
-    return res.json({
+    res.json({
       success: true,
       data: status
     });
   } catch (error) {
-    const notFound = error.message === "User not found";
-
-    return res.status(notFound ? 404 : 500).json({
-      success: false,
-      message: notFound
-        ? error.message
-        : "Failed to get daily reward status"
-    });
+    next(error);
   }
 });
 
-// Claim daily reward
-router.post("/:userId/claim", async (req, res) => {
+router.post('/claim', async (req, res, next) => {
   try {
-    const { userId } = req.params;
+    const { telegramId } = req.body;
 
-    if (!/^\d+$/.test(userId)) {
+    if (!telegramId) {
       return res.status(400).json({
         success: false,
-        message: "Invalid user ID"
+        message: 'Telegram ID is required.'
       });
     }
 
-    const result = await claimDailyReward(userId);
+    const result = await claimDailyReward(telegramId);
 
-    return res.json({
-      success: true,
-      message: "Daily reward claimed",
-      data: result
-    });
+    res.json(result);
   } catch (error) {
-    const notFound = error.message === "User not found";
-    const alreadyClaimed =
-      error.message === "Daily reward already claimed";
+    if (
+      error.message === 'Daily reward already claimed today.'
+    ) {
+      return res.status(409).json({
+        success: false,
+        message: error.message
+      });
+    }
 
-    return res.status(
-      notFound ? 404 : alreadyClaimed ? 409 : 500
-    ).json({
-      success: false,
-      message: notFound || alreadyClaimed
-        ? error.message
-        : "Failed to claim daily reward"
-    });
+    if (
+      error.message === 'User not found.' ||
+      error.message === 'User account is not active.'
+    ) {
+      return res.status(400).json({
+        success: false,
+        message: error.message
+      });
+    }
+
+    next(error);
   }
 });
 

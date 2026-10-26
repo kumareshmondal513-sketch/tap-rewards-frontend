@@ -1,42 +1,42 @@
 import express from 'express';
 
 import {
-  getAdminDashboard
-} from './adminDashboardService.js';
+  getAdminDashboardSummary,
+  getAdminDashboardHealth
+} from '../services/adminDashboardService.js';
 
 import {
-  requireTelegramAuth
-} from './telegramAuth.js';
-
-import {
-  requireAdminAuth
-} from './adminAuthMiddleware.js';
+  requireMainAdmin
+} from '../middleware/adminRoleMiddleware.js';
 
 const router = express.Router();
 
-// অ্যাডমিন ড্যাশবোর্ডের সারাংশ
 router.get(
-  '/',
-  requireTelegramAuth,
-  requireAdminAuth,
-  async (req, res) => {
+  '/summary',
+  requireMainAdmin(),
+  async (req, res, next) => {
     try {
-      const dashboard = await getAdminDashboard();
+      const summary =
+        await getAdminDashboardSummary();
 
-      return res.json({
-        success: true,
-        dashboard
-      });
+      return res.status(200).json(summary);
     } catch (error) {
-      console.error(
-        'Admin dashboard error:',
-        error.message
-      );
+      next(error);
+    }
+  }
+);
 
-      return res.status(500).json({
-        success: false,
-        message: 'ড্যাশবোর্ডের তথ্য লোড করা যায়নি'
-      });
+router.get(
+  '/health',
+  requireMainAdmin(),
+  async (req, res, next) => {
+    try {
+      const health =
+        await getAdminDashboardHealth();
+
+      return res.status(200).json(health);
+    } catch (error) {
+      next(error);
     }
   }
 );

@@ -1,37 +1,26 @@
 import express from 'express';
-import { db } from './firebase.js';
+
+import {
+  getHealthStatus
+} from '../services/healthService.js';
 
 const router = express.Router();
 
-// সার্ভারের স্বাস্থ্য পরীক্ষা
-router.get('/', async (req, res) => {
-  return res.json({
-    success: true,
-    status: 'ok',
-    service: 'Telegram Tap-to-Earn Bot',
-    timestamp: new Date().toISOString()
-  });
-});
-
-// Firebase সংযোগ পরীক্ষা
-router.get('/firebase', async (req, res) => {
+router.get('/', async (req, res, next) => {
   try {
-    await db.ref('.info/connected').once('value');
+    const health = await getHealthStatus();
 
-    return res.json({
-      success: true,
-      message: 'Firebase পরীক্ষা সম্পন্ন'
+    const statusCode =
+      health.status === 'ok'
+        ? 200
+        : 503;
+
+    res.status(statusCode).json({
+      success: health.status === 'ok',
+      ...health
     });
   } catch (error) {
-    console.error(
-      'Firebase health check failed:',
-      error.message
-    );
-
-    return res.status(503).json({
-      success: false,
-      message: 'Firebase সংযোগ পরীক্ষা করা যায়নি'
-    });
+    next(error);
   }
 });
 

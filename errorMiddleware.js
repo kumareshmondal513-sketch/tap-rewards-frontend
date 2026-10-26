@@ -1,34 +1,43 @@
-// Express-এর কেন্দ্রীয় Error Middleware
+export function notFoundMiddleware(
+  req,
+  res
+) {
+  res.status(404).json({
+    success: false,
+    message: 'API route not found.',
+    path: req.originalUrl
+  });
+}
+
 export function errorMiddleware(
   error,
   req,
   res,
   next
 ) {
-  console.error('Server error:', {
-    method: req.method,
-    path: req.path,
-    message: error.message,
-    time: new Date().toISOString()
-  });
+  console.error(
+    '[API ERROR]',
+    error
+  );
 
   if (res.headersSent) {
     return next(error);
   }
 
   const statusCode =
-    Number.isInteger(error.statusCode) &&
-    error.statusCode >= 400 &&
-    error.statusCode <= 599
+    Number.isInteger(error.statusCode)
       ? error.statusCode
       : 500;
 
   const message =
     statusCode >= 500
-      ? 'সার্ভারে সমস্যা হয়েছে। পরে আবার চেষ্টা করুন।'
-      : error.message || 'অনুরোধটি সম্পন্ন করা যায়নি';
+      ? 'Internal server error.'
+      : (
+          error.message ||
+          'Request failed.'
+        );
 
-  return res.status(statusCode).json({
+  res.status(statusCode).json({
     success: false,
     message
   });
